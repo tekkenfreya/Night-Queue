@@ -1,14 +1,18 @@
 import { Movie, Genre, ApiResponse, SearchFilters } from '@/types';
 
-const TMDB_BASE_URL = process.env.NEXT_PUBLIC_TMDB_BASE_URL!;
-const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
+const TMDB_BASE_URL = process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3';
+const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
 
-if (!TMDB_API_KEY || !TMDB_BASE_URL) {
-  throw new Error('TMDB API configuration is required');
-}
+// Only throw error at runtime, not during build
+const isAPIConfigured = () => {
+  if (!TMDB_API_KEY || !TMDB_BASE_URL) {
+    throw new Error('TMDB API configuration is required. Please add NEXT_PUBLIC_TMDB_API_KEY to your environment variables.');
+  }
+};
 
 class TMDbService {
   private async fetchFromTMDb<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+    isAPIConfigured(); // Check API configuration at runtime
     const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
     url.searchParams.append('api_key', TMDB_API_KEY);
     
