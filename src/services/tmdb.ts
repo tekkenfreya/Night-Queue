@@ -68,6 +68,7 @@ class TMDbService {
     if (filters.genre) params.with_genres = filters.genre;
     if (filters.year) params.year = filters.year;
     if (filters.rating) params.vote_average_gte = filters.rating;
+    if (filters.country) params.with_origin_country = filters.country;
 
     return this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
   }

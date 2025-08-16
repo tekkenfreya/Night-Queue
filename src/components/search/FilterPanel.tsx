@@ -11,6 +11,24 @@ interface FilterPanelProps {
 export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProps) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
+  
+  const countries = [
+    { code: 'US', name: 'United States' },
+    { code: 'GB', name: 'United Kingdom' },
+    { code: 'FR', name: 'France' },
+    { code: 'DE', name: 'Germany' },
+    { code: 'IT', name: 'Italy' },
+    { code: 'ES', name: 'Spain' },
+    { code: 'JP', name: 'Japan' },
+    { code: 'KR', name: 'South Korea' },
+    { code: 'CN', name: 'China' },
+    { code: 'IN', name: 'India' },
+    { code: 'CA', name: 'Canada' },
+    { code: 'AU', name: 'Australia' },
+    { code: 'BR', name: 'Brazil' },
+    { code: 'MX', name: 'Mexico' },
+    { code: 'RU', name: 'Russia' },
+  ];
 
   const handleFilterChange = (key: keyof SearchFilters, value: any) => {
     const newFilters = { ...filters, [key]: value || undefined };
@@ -21,7 +39,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
     <div className="bg-netflix-gray p-4 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Filters</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div>
           <label className="block text-sm font-medium mb-2">Genre</label>
           <select
@@ -65,6 +83,22 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
             <option value="7">7+ Stars</option>
             <option value="8">8+ Stars</option>
             <option value="9">9+ Stars</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Country</label>
+          <select
+            value={filters.country || ''}
+            onChange={(e) => handleFilterChange('country', e.target.value || null)}
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+          >
+            <option value="">All Countries</option>
+            {countries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
           </select>
         </div>
 
