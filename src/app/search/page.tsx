@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { searchMovies, fetchGenres, setSearchQuery, setFilters } from '@/lib/slices/moviesSlice';
+import { searchMovies, discoverMovies, fetchGenres, setSearchQuery, setFilters } from '@/lib/slices/moviesSlice';
 import { SearchBar } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
 import { MovieGrid } from '@/components/movies/MovieGrid';
@@ -21,6 +21,12 @@ export default function SearchPage() {
     dispatch(setSearchQuery(query));
     if (query.trim()) {
       dispatch(searchMovies({ query, filters }));
+    } else {
+      // If no query but filters exist, use discover
+      const hasFilters = Object.values(filters).some(value => value !== undefined && value !== null && value !== '');
+      if (hasFilters) {
+        dispatch(discoverMovies(filters));
+      }
     }
   };
 
@@ -28,6 +34,12 @@ export default function SearchPage() {
     dispatch(setFilters(newFilters));
     if (searchQuery.trim()) {
       dispatch(searchMovies({ query: searchQuery, filters: newFilters }));
+    } else {
+      // If no search query but filters exist, use discover
+      const hasFilters = Object.values(newFilters).some(value => value !== undefined && value !== null && value !== '');
+      if (hasFilters) {
+        dispatch(discoverMovies(newFilters));
+      }
     }
   };
 
@@ -109,8 +121,11 @@ export default function SearchPage() {
         <div className="text-center py-20 animate-fadeIn">
           <div className="text-8xl mb-6">🍿</div>
           <h3 className="text-2xl font-semibold text-white mb-2">Ready to discover?</h3>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-400 text-lg mb-4">
             Start typing to search thousands of movies
+          </p>
+          <p className="text-gray-500 text-sm mb-6">
+            Or use filters below to discover movies by genre, year, rating, and more!
           </p>
           <div className="flex justify-center gap-4 mt-6">
             <span className="bg-gray-800 px-3 py-1 rounded text-sm text-gray-300">Action</span>

@@ -76,6 +76,14 @@ export const fetchMovieDetails = createAsyncThunk(
   }
 );
 
+export const discoverMovies = createAsyncThunk(
+  'movies/discoverMovies',
+  async (filters: SearchFilters) => {
+    const response = await tmdbService.discoverMovies(filters);
+    return response;
+  }
+);
+
 const moviesSlice = createSlice({
   name: 'movies',
   initialState,
@@ -124,6 +132,20 @@ const moviesSlice = createSlice({
       })
       .addCase(fetchMovieDetails.fulfilled, (state, action) => {
         state.currentMovie = action.payload;
+      })
+      .addCase(discoverMovies.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(discoverMovies.fulfilled, (state, action) => {
+        state.loading = false;
+        state.searchResults = action.payload.results;
+        state.totalResults = action.payload.total_results;
+        state.totalPages = action.payload.total_pages;
+      })
+      .addCase(discoverMovies.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to discover movies';
       });
   },
 });
