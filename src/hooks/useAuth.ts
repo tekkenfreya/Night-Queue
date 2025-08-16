@@ -10,6 +10,15 @@ export function useAuth() {
   const supabase = createClient();
   const dispatch = useAppDispatch();
 
+  // If no supabase client (build time), return early
+  if (!supabase) {
+    return {
+      user: null,
+      loading: false,
+      signOut: async () => {},
+    };
+  }
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {

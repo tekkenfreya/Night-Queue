@@ -3,7 +3,11 @@ import { WatchlistItem, Movie, User, UserPreferences } from '@/types';
 
 class DatabaseService {
   private getSupabase() {
-    return createClient();
+    const client = createClient();
+    if (!client) {
+      throw new Error('Supabase client not available during build time');
+    }
+    return client;
   }
 
   // Profile operations
