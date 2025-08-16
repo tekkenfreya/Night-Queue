@@ -56,7 +56,12 @@ export default function LoginPage() {
             },
           };
           dispatch(setUser(user));
-          router.push('/');
+          setMessage('Login successful! Redirecting...');
+          
+          // Small delay to show success message before redirect
+          setTimeout(() => {
+            router.push('/');
+          }, 1000);
         }
       }
     } catch (error) {
@@ -67,43 +72,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-netflix-gray p-8 rounded-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-8">
-          {isSignUp ? 'Sign Up for NightQueue' : 'Sign In to NightQueue'}
-        </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <div className="bg-gray-800 p-8 rounded-xl w-full max-w-md shadow-2xl animate-scaleIn border border-gray-700">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {isSignUp ? 'Join NightQueue' : 'Welcome Back'}
+          </h1>
+          <p className="text-gray-400">
+            {isSignUp ? 'Create your movie tracking account' : 'Sign in to your account'}
+          </p>
+        </div>
         
         {message ? (
-          <div className={`mb-4 p-3 rounded text-sm ${
-            message.includes('check your email') 
-              ? 'bg-green-800 text-green-200' 
-              : 'bg-red-800 text-red-200'
+          <div className={`mb-6 p-4 rounded-lg text-sm animate-slideUp ${
+            message.includes('check your email') || message.includes('successful')
+              ? 'bg-green-900/50 border border-green-600 text-green-200' 
+              : 'bg-red-900/50 border border-red-600 text-red-200'
           }`}>
-            {message}
+            <div className="flex items-center gap-3">
+              {message.includes('check your email') || message.includes('successful') ? (
+                <span className="text-green-400">✓</span>
+              ) : (
+                <span className="text-red-400">❌</span>
+              )}
+              {message}
+            </div>
           </div>
         ) : null}
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2 text-gray-300">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-netflix-dark border border-gray-600 rounded text-white focus:outline-none focus:border-netflix-red"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-netflix-red focus:ring-2 focus:ring-netflix-red/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Enter your email"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2 text-gray-300">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-netflix-dark border border-gray-600 rounded text-white focus:outline-none focus:border-netflix-red"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-netflix-red focus:ring-2 focus:ring-netflix-red/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Enter your password"
             />
           </div>
@@ -111,12 +130,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-netflix-red py-3 rounded font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+            className="w-full bg-netflix-red py-3 rounded-lg font-medium hover:bg-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading 
-              ? (isSignUp ? 'Creating Account...' : 'Signing In...') 
-              : (isSignUp ? 'Sign Up' : 'Sign In')
-            }
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                {isSignUp ? 'Creating Account...' : 'Signing In...'}
+              </>
+            ) : (
+              isSignUp ? 'Sign Up' : 'Sign In'
+            )}
           </button>
         </form>
         
