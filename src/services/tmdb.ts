@@ -73,7 +73,7 @@ class TMDbService {
   }
 
   getImageUrl(path: string | null, size: string = 'w500'): string {
-    if (!path) return '/placeholder-movie.jpg';
+    if (!path) return 'https://via.placeholder.com/500x750/374151/9CA3AF?text=No+Image';
     return `https://image.tmdb.org/t/p/${size}${path}`;
   }
 }

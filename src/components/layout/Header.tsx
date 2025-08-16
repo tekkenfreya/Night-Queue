@@ -98,10 +98,10 @@ export function Header() {
                 </button>
                 
                 {isUserMenuOpen ? (
-                  <div className="absolute right-0 mt-2 w-48 bg-netflix-dark border border-gray-700 rounded-lg shadow-lg z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-600 rounded-lg shadow-2xl z-50 animate-fadeIn">
                     <Link 
                       href="/profile" 
-                      className="block px-4 py-2 text-white hover:bg-white/10 transition-colors"
+                      className="block px-4 py-3 text-gray-200 hover:bg-netflix-red hover:text-white transition-all duration-200 rounded-t-lg"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Profile
@@ -111,7 +111,7 @@ export function Header() {
                         signOut();
                         setIsUserMenuOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-white hover:bg-white/10 transition-colors"
+                      className="w-full text-left px-4 py-3 text-gray-200 hover:bg-netflix-red hover:text-white transition-all duration-200 rounded-b-lg"
                     >
                       Sign Out
                     </button>
