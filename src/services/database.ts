@@ -2,12 +2,14 @@ import { createClient } from '@/lib/supabase/client';
 import { WatchlistItem, Movie, User, UserPreferences } from '@/types';
 
 class DatabaseService {
-  private supabase = createClient();
+  private getSupabase() {
+    return createClient();
+  }
 
   // Profile operations
   async getProfile(userId: string): Promise<User | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -53,7 +55,7 @@ class DatabaseService {
         }
       }
 
-      const { error } = await this.supabase
+      const { error } = await this.getSupabase()
         .from('profiles')
         .update(dbUpdates)
         .eq('id', userId);
@@ -69,7 +71,7 @@ class DatabaseService {
   // Watchlist operations
   async getWatchlist(userId: string): Promise<WatchlistItem[]> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('watchlist')
         .select('*')
         .eq('user_id', userId)
@@ -107,7 +109,7 @@ class DatabaseService {
 
   async addToWatchlist(userId: string, movie: Movie, status: 'want_to_watch' | 'watched' | 'watch_later' = 'want_to_watch'): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.getSupabase()
         .from('watchlist')
         .insert({
           user_id: userId,
@@ -141,7 +143,7 @@ class DatabaseService {
       if (updates.dateWatched) dbUpdates.date_watched = updates.dateWatched;
       if (updates.whereWatched !== undefined) dbUpdates.where_watched = updates.whereWatched;
 
-      const { error } = await this.supabase
+      const { error } = await this.getSupabase()
         .from('watchlist')
         .update(dbUpdates)
         .eq('id', itemId)
@@ -157,7 +159,7 @@ class DatabaseService {
 
   async removeFromWatchlist(userId: string, itemId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.getSupabase()
         .from('watchlist')
         .delete()
         .eq('id', itemId)
@@ -173,7 +175,7 @@ class DatabaseService {
 
   async isMovieInWatchlist(userId: string, movieId: number): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getSupabase()
         .from('watchlist')
         .select('id')
         .eq('user_id', userId)
