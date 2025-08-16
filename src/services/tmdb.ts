@@ -32,15 +32,37 @@ class TMDbService {
   }
 
   async searchMovies(query: string, filters: SearchFilters = {}): Promise<ApiResponse<Movie>> {
-    const params: Record<string, any> = {
-      query,
-      page: 1,
-    };
+    // Check if filters are applied beyond just search query
+    const hasAdvancedFilters = filters.genre || filters.rating || filters.country || filters.sortBy;
+    
+    if (hasAdvancedFilters) {
+      // Use discover API with keyword for better filter support
+      const params: Record<string, any> = {
+        page: 1,
+        sort_by: filters.sortBy ? `${filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
+        with_keywords: query, // Use keywords instead of text search for better filtering
+      };
 
-    if (filters.year) params.year = filters.year;
-    if (filters.genre) params.with_genres = filters.genre;
+      if (filters.genre) params.with_genres = filters.genre;
+      if (filters.year) params.primary_release_year = filters.year;
+      if (filters.rating) {
+        params.vote_average_gte = filters.rating;
+        params.vote_count_gte = 100;
+      }
+      if (filters.country) params.with_origin_country = filters.country;
 
-    return this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', params);
+      return this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
+    } else {
+      // Use simple search API for text-only searches
+      const params: Record<string, any> = {
+        query,
+        page: 1,
+      };
+
+      if (filters.year) params.primary_release_year = filters.year;
+
+      return this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', params);
+    }
   }
 
   async getMovieDetails(movieId: number): Promise<Movie> {
@@ -66,8 +88,14 @@ class TMDbService {
     };
 
     if (filters.genre) params.with_genres = filters.genre;
-    if (filters.year) params.year = filters.year;
-    if (filters.rating) params.vote_average_gte = filters.rating;
+    if (filters.year) params.primary_release_year = filters.year;
+    
+    // Improved rating filter with minimum vote count
+    if (filters.rating) {
+      params.vote_average_gte = filters.rating;
+      params.vote_count_gte = 100; // Minimum 100 votes for reliable ratings
+    }
+    
     if (filters.country) params.with_origin_country = filters.country;
 
     return this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);

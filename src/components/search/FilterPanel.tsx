@@ -39,7 +39,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
     <div className="bg-netflix-gray p-4 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Filters</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <div>
           <label className="block text-sm font-medium mb-2">Genre</label>
           <select
@@ -80,9 +80,11 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
           >
             <option value="">Any Rating</option>
-            <option value="7">7+ Stars</option>
-            <option value="8">8+ Stars</option>
-            <option value="9">9+ Stars</option>
+            <option value="5">5+ Stars (Good)</option>
+            <option value="6">6+ Stars (Great)</option>
+            <option value="7">7+ Stars (Excellent)</option>
+            <option value="8">8+ Stars (Outstanding)</option>
+            <option value="9">9+ Stars (Masterpiece)</option>
           </select>
         </div>
 
@@ -113,6 +115,19 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
             <option value="vote_average">Rating</option>
             <option value="release_date">Release Date</option>
             <option value="title">Title</option>
+            <option value="revenue">Box Office</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Sort Order</label>
+          <select
+            value={filters.sortOrder || 'desc'}
+            onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+          >
+            <option value="desc">High to Low</option>
+            <option value="asc">Low to High</option>
           </select>
         </div>
       </div>
