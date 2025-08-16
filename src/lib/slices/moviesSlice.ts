@@ -140,8 +140,8 @@ const moviesSlice = createSlice({
       .addCase(discoverMovies.fulfilled, (state, action) => {
         state.loading = false;
         state.searchResults = action.payload.results;
-        state.totalResults = action.payload.total_results;
-        state.totalPages = action.payload.total_pages;
+        state.pagination.totalResults = action.payload.total_results;
+        state.pagination.totalPages = action.payload.total_pages;
       })
       .addCase(discoverMovies.rejected, (state, action) => {
         state.loading = false;

@@ -106,7 +106,7 @@ export function MovieCard({ movie, showFullDetails = false }: MovieCardProps) {
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        <div className="absolute bottom-4 left-4 right-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <button
             onClick={handleWatchlistToggle}
             className={`w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 ${

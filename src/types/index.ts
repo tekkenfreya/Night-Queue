@@ -49,6 +49,7 @@ export interface SearchFilters {
   genre?: number;
   year?: number;
   rating?: number;
+  country?: string;
   sortBy?: 'popularity' | 'rating' | 'release_date' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
