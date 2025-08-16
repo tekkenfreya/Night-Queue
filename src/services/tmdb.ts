@@ -16,7 +16,7 @@ class TMDbService {
     const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
     url.searchParams.append('api_key', TMDB_API_KEY);
     
-    Object.entries(params).forEach(([key, value]) => {
+    Object.entries(params).forEach(([key, value]: [string, any]) => {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, value.toString());
       }

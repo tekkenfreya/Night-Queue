@@ -19,7 +19,7 @@ class OMDbService {
     const url = new URL(OMDB_BASE_URL!);
     url.searchParams.append('apikey', OMDB_API_KEY!);
     
-    Object.entries(params).forEach(([key, value]) => {
+    Object.entries(params).forEach(([key, value]: [string, any]) => {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, value.toString());
       }

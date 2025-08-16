@@ -84,7 +84,7 @@ class DatabaseService {
       if (error) throw error;
       if (!data) return [];
 
-      return data.map(item => ({
+      return data.map((item: any) => ({
         id: item.id,
         movieId: item.movie_id,
         movie: {
