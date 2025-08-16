@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAppSelector } from '@/lib/hooks';
+import { useAuth } from '@/hooks/useAuth';
 
 export function Header() {
   const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
+  const { signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -76,18 +79,44 @@ export function Header() {
 
             {/* User Profile */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <div className="hidden md:block text-right">
-                  <div className="text-sm font-medium text-white">
-                    {currentUser?.name || 'User'}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-3 hover:bg-white/10 rounded-lg p-2 transition-colors"
+                >
+                  <div className="hidden md:block text-right">
+                    <div className="text-sm font-medium text-white">
+                      {currentUser?.name || 'User'}
+                    </div>
+                    <div className="text-xs text-white/60">
+                      {currentUser?.email}
+                    </div>
                   </div>
-                  <div className="text-xs text-white/60">
-                    {currentUser?.email}
+                  <div className="w-8 h-8 bg-netflix-red rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    {currentUser?.name?.[0]?.toUpperCase() || 'U'}
                   </div>
-                </div>
-                <div className="w-8 h-8 bg-netflix-red rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  {currentUser?.name?.[0]?.toUpperCase() || 'U'}
-                </div>
+                </button>
+                
+                {isUserMenuOpen ? (
+                  <div className="absolute right-0 mt-2 w-48 bg-netflix-dark border border-gray-700 rounded-lg shadow-lg z-50">
+                    <Link 
+                      href="/profile" 
+                      className="block px-4 py-2 text-white hover:bg-white/10 transition-colors"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <button 
+                      onClick={() => {
+                        signOut();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-white hover:bg-white/10 transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <Link 
