@@ -17,7 +17,7 @@ class TMDbService {
     url.searchParams.append('api_key', TMDB_API_KEY);
     
     Object.entries(params).forEach(([key, value]: [string, any]) => {
-      if (value !== undefined && value !== null) {
+      if (value !== undefined && value !== null && value !== '') {
         url.searchParams.append(key, value.toString());
       }
     });
@@ -36,22 +36,8 @@ class TMDbService {
     const hasAdvancedFilters = filters.genre || filters.rating || filters.country || filters.sortBy;
     
     if (hasAdvancedFilters) {
-      // Use discover API with keyword for better filter support
-      const params: Record<string, any> = {
-        page: 1,
-        sort_by: filters.sortBy ? `${filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
-        with_keywords: query, // Use keywords instead of text search for better filtering
-      };
-
-      if (filters.genre) params.with_genres = filters.genre;
-      if (filters.year) params.primary_release_year = filters.year;
-      if (filters.rating) {
-        params.vote_average_gte = filters.rating;
-        params.vote_count_gte = 100;
-      }
-      if (filters.country) params.with_origin_country = filters.country;
-
-      return this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
+      // Use discover API for better filter support and fetch multiple pages
+      return this.searchWithFilters(query, filters);
     } else {
       // Use simple search API for text-only searches
       const params: Record<string, any> = {
@@ -63,6 +49,67 @@ class TMDbService {
 
       return this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', params);
     }
+  }
+
+  private async searchWithFilters(query: string, filters: SearchFilters): Promise<ApiResponse<Movie>> {
+    const allResults: Movie[] = [];
+    let currentPage = 1;
+    const maxPages = 5; // Limit to prevent excessive API calls
+    const targetResults = 100; // Try to get at least 100 results
+    
+    // Apply minimum vote count for rating-based sorting to prevent unreliable ratings
+    const isRatingBasedSort = filters.sortBy === 'vote_average' || filters.rating;
+    
+    while (currentPage <= maxPages && allResults.length < targetResults) {
+      const params: Record<string, any> = {
+        page: currentPage,
+        sort_by: filters.sortBy ? `${filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
+      };
+
+      // Add search query if provided
+      if (query.trim()) {
+        params.with_keywords = query;
+      }
+
+      // Apply all filters consistently
+      if (filters.genre) params.with_genres = filters.genre;
+      if (filters.year) params.primary_release_year = filters.year;
+      
+      // Apply vote count minimum for rating filter OR when sorting by rating
+      if (filters.rating || isRatingBasedSort) {
+        if (filters.rating) {
+          params.vote_average_gte = filters.rating;
+        }
+        params.vote_count_gte = 100; // Always require minimum 100 votes for reliable ratings
+      }
+      
+      if (filters.country && filters.country.trim() !== '') params.with_origin_country = filters.country;
+
+      const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
+      
+      // Additional client-side filtering for vote count when rating-based operations
+      let filteredResults = response.results;
+      if (isRatingBasedSort) {
+        filteredResults = response.results.filter(movie => movie.vote_count >= 100);
+      }
+      
+      allResults.push(...filteredResults);
+      
+      // Break if no more pages or no results on current page
+      if (currentPage >= response.total_pages || response.results.length === 0) {
+        break;
+      }
+      
+      currentPage++;
+    }
+
+    // Return combined results with updated pagination info
+    return {
+      results: allResults,
+      page: 1,
+      total_pages: Math.ceil(allResults.length / 20),
+      total_results: allResults.length
+    };
   }
 
   async getMovieDetails(movieId: number): Promise<Movie> {
@@ -82,23 +129,7 @@ class TMDbService {
   }
 
   async discoverMovies(filters: SearchFilters = {}): Promise<ApiResponse<Movie>> {
-    const params: Record<string, any> = {
-      page: 1,
-      sort_by: filters.sortBy ? `${filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
-    };
-
-    if (filters.genre) params.with_genres = filters.genre;
-    if (filters.year) params.primary_release_year = filters.year;
-    
-    // Improved rating filter with minimum vote count
-    if (filters.rating) {
-      params.vote_average_gte = filters.rating;
-      params.vote_count_gte = 100; // Minimum 100 votes for reliable ratings
-    }
-    
-    if (filters.country) params.with_origin_country = filters.country;
-
-    return this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
+    return this.searchWithFilters('', filters);
   }
 
   getImageUrl(path: string | null, size: string = 'w500'): string {
