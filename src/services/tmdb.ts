@@ -71,11 +71,6 @@ class TMDbService {
         include_video: false,
       };
 
-      // Add search query if provided
-      if (query.trim()) {
-        params.with_keywords = query;
-      }
-
       // Apply all filters consistently
       if (filters.genre) params.with_genres = filters.genre;
       if (filters.year) params.primary_release_year = filters.year;
