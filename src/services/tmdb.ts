@@ -33,7 +33,7 @@ class TMDbService {
 
   async searchMovies(query: string, filters: SearchFilters = {}): Promise<ApiResponse<Movie>> {
     // Check if filters are applied beyond just search query
-    const hasAdvancedFilters = filters.genre || filters.rating || filters.country || filters.sortBy;
+    const hasAdvancedFilters = filters.genre || filters.rating || filters.country || filters.cast || filters.sortBy;
     
     if (hasAdvancedFilters) {
       // Use discover API for better filter support and fetch multiple pages
@@ -47,7 +47,11 @@ class TMDbService {
 
       if (filters.year) params.primary_release_year = filters.year;
 
-      return this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', params);
+      const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', params);
+      return {
+        ...response,
+        results: response.results.filter(movie => movie.vote_count >= 50)
+      };
     }
   }
 
@@ -58,12 +62,13 @@ class TMDbService {
     const targetResults = 100; // Try to get at least 100 results
     
     // Apply minimum vote count for rating-based sorting to prevent unreliable ratings
-    const isRatingBasedSort = filters.sortBy === 'vote_average' || filters.rating;
+    const isRatingBasedSort = filters.sortBy === 'rating' || filters.sortBy === 'vote_count' || filters.rating;
     
     while (currentPage <= maxPages && allResults.length < targetResults) {
       const params: Record<string, any> = {
         page: currentPage,
-        sort_by: filters.sortBy ? `${filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
+        sort_by: filters.sortBy ? `${filters.sortBy === 'rating' ? 'vote_average' : filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
+        include_video: false,
       };
 
       // Add search query if provided
@@ -74,24 +79,22 @@ class TMDbService {
       // Apply all filters consistently
       if (filters.genre) params.with_genres = filters.genre;
       if (filters.year) params.primary_release_year = filters.year;
+      if (filters.cast && filters.cast.trim()) params.with_cast = filters.cast;
       
-      // Apply vote count minimum for rating filter OR when sorting by rating
-      if (filters.rating || isRatingBasedSort) {
-        if (filters.rating) {
-          params.vote_average_gte = filters.rating;
-        }
-        params.vote_count_gte = 100; // Always require minimum 100 votes for reliable ratings
+      // Apply rating filter if specified
+      if (filters.rating) {
+        params.vote_average_gte = filters.rating;
       }
+      
+      // ALWAYS apply vote count minimum to avoid low-quality movies
+      params['vote_count.gte'] = 50; // Always require minimum 50 votes for reliable ratings
       
       if (filters.country && filters.country.trim() !== '') params.with_origin_country = filters.country;
 
       const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/discover/movie', params);
       
-      // Additional client-side filtering for vote count when rating-based operations
-      let filteredResults = response.results;
-      if (isRatingBasedSort) {
-        filteredResults = response.results.filter(movie => movie.vote_count >= 100);
-      }
+      // Additional client-side filtering for vote count to ensure quality
+      let filteredResults = response.results.filter(movie => movie.vote_count >= 50);
       
       allResults.push(...filteredResults);
       
@@ -117,15 +120,47 @@ class TMDbService {
   }
 
   async getPopularMovies(page: number = 1): Promise<ApiResponse<Movie>> {
-    return this.fetchFromTMDb<ApiResponse<Movie>>('/movie/popular', { page });
+    const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/movie/popular', { page });
+    return {
+      ...response,
+      results: response.results.filter(movie => movie.vote_count >= 50)
+    };
   }
 
   async getTopRatedMovies(page: number = 1): Promise<ApiResponse<Movie>> {
-    return this.fetchFromTMDb<ApiResponse<Movie>>('/movie/top_rated', { page });
+    const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/movie/top_rated', { page });
+    return {
+      ...response,
+      results: response.results.filter(movie => movie.vote_count >= 50)
+    };
   }
 
   async getGenres(): Promise<{ genres: Genre[] }> {
     return this.fetchFromTMDb<{ genres: Genre[] }>('/genre/movie/list');
+  }
+
+  async getTrendingMovies(timeWindow: 'day' | 'week' = 'week'): Promise<ApiResponse<Movie>> {
+    const response = await this.fetchFromTMDb<ApiResponse<Movie>>(`/trending/movie/${timeWindow}`);
+    return {
+      ...response,
+      results: response.results.filter(movie => movie.vote_count >= 50)
+    };
+  }
+
+  async getNowPlayingMovies(page: number = 1): Promise<ApiResponse<Movie>> {
+    const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/movie/now_playing', { page });
+    return {
+      ...response,
+      results: response.results.filter(movie => movie.vote_count >= 50)
+    };
+  }
+
+  async getUpcomingMovies(page: number = 1): Promise<ApiResponse<Movie>> {
+    const response = await this.fetchFromTMDb<ApiResponse<Movie>>('/movie/upcoming', { page });
+    return {
+      ...response,
+      results: response.results.filter(movie => movie.vote_count >= 50)
+    };
   }
 
   async discoverMovies(filters: SearchFilters = {}): Promise<ApiResponse<Movie>> {
