@@ -13,5 +13,18 @@ export function createClient() {
     throw new Error('Supabase URL and key must be provided. Please check your environment variables.');
   }
   
-  return createBrowserClient(url, key);
+  return createBrowserClient(url, key, {
+    auth: {
+      persistSession: true, // Keep for production, but we'll control it manually
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    },
+    global: {
+      headers: {
+        'x-client-info': 'nightqueue-web'
+      }
+    }
+  });
 }
