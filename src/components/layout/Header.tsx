@@ -27,39 +27,53 @@ export function Header() {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl lg:text-3xl font-black text-netflix-red">
-              NIGHTQUEUE
-            </div>
-          </Link>
+          <div className="flex items-center space-x-8">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="text-2xl lg:text-3xl font-black text-netflix-red">
+                NETFLIX
+              </div>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            <Link 
-              href="/" 
-              className="text-white/90 hover:text-white transition-colors duration-200 font-medium"
-            >
-              Home
-            </Link>
-            <Link 
-              href="/search" 
-              className="text-white/90 hover:text-white transition-colors duration-200 font-medium"
-            >
-              Search
-            </Link>
-            <Link 
-              href="/watchlist" 
-              className="text-white/90 hover:text-white transition-colors duration-200 font-medium"
-            >
-              My List
-            </Link>
-            <Link 
-              href="/discover" 
-              className="text-white/90 hover:text-white transition-colors duration-200 font-medium"
-            >
-              Discover
-            </Link>
-          </nav>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-6">
+              <Link 
+                href="/" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                Home
+              </Link>
+              <Link 
+                href="/tv" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                TV Shows
+              </Link>
+              <Link 
+                href="/search" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                Movies
+              </Link>
+              <Link 
+                href="/new" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                New & Popular
+              </Link>
+              <Link 
+                href="/watchlist" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                My List
+              </Link>
+              <Link 
+                href="/languages" 
+                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
+              >
+                Browse by Languages
+              </Link>
+            </nav>
+          </div>
 
           {/* Right side - User menu */}
           <div className="flex items-center space-x-4">
