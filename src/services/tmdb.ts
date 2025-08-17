@@ -56,13 +56,16 @@ class TMDbService {
   }
 
   private async searchWithFilters(query: string, filters: SearchFilters): Promise<ApiResponse<Movie>> {
+    // If we have a search query (like "star wars"), get search results first then apply filters
+    if (query.trim()) {
+      return this.searchThenApplyFilters(query, filters);
+    }
+    
+    // Otherwise use discover API for filter-only queries (no search text)
     const allResults: Movie[] = [];
     let currentPage = 1;
     const maxPages = 5; // Limit to prevent excessive API calls
     const targetResults = 100; // Try to get at least 100 results
-    
-    // Apply minimum vote count for rating-based sorting to prevent unreliable ratings
-    const isRatingBasedSort = filters.sortBy === 'rating' || filters.sortBy === 'vote_count' || filters.rating;
     
     while (currentPage <= maxPages && allResults.length < targetResults) {
       const params: Record<string, any> = {
@@ -107,6 +110,67 @@ class TMDbService {
       page: 1,
       total_pages: Math.ceil(allResults.length / 20),
       total_results: allResults.length
+    };
+  }
+
+  async searchThenApplyFilters(query: string, filters: SearchFilters): Promise<ApiResponse<Movie>> {
+    // Get search results first
+    const searchParams: Record<string, any> = { query, page: 1 };
+    if (filters.year) searchParams.primary_release_year = filters.year;
+    
+    const searchResponse = await this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', searchParams);
+    let results = searchResponse.results.filter(movie => movie.vote_count >= 50);
+    
+    // Apply additional filters client-side
+    if (filters.genre) {
+      results = results.filter(movie => movie.genre_ids?.includes(filters.genre!));
+    }
+    
+    if (filters.rating) {
+      results = results.filter(movie => movie.vote_average >= filters.rating!);
+    }
+    
+    // Apply sorting client-side
+    if (filters.sortBy) {
+      results.sort((a, b) => {
+        let aValue: any, bValue: any;
+        
+        switch (filters.sortBy) {
+          case 'rating':
+            aValue = a.vote_average;
+            bValue = b.vote_average;
+            break;
+          case 'release_date':
+            aValue = new Date(a.release_date || '1900-01-01').getTime();
+            bValue = new Date(b.release_date || '1900-01-01').getTime();
+            break;
+          case 'title':
+            aValue = a.title.toLowerCase();
+            bValue = b.title.toLowerCase();
+            break;
+          case 'vote_count':
+            aValue = a.vote_count;
+            bValue = b.vote_count;
+            break;
+          case 'popularity':
+          default:
+            aValue = a.vote_average * Math.log(a.vote_count + 1);
+            bValue = b.vote_average * Math.log(b.vote_count + 1);
+            break;
+        }
+        
+        const order = filters.sortOrder === 'asc' ? 1 : -1;
+        if (aValue < bValue) return -1 * order;
+        if (aValue > bValue) return 1 * order;
+        return 0;
+      });
+    }
+    
+    return {
+      results,
+      page: 1,
+      total_pages: Math.ceil(results.length / 20),
+      total_results: results.length
     };
   }
 
