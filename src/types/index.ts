@@ -50,7 +50,8 @@ export interface SearchFilters {
   year?: number;
   rating?: number;
   country?: string;
-  sortBy?: 'popularity' | 'rating' | 'release_date' | 'title';
+  cast?: string;
+  sortBy?: 'popularity' | 'rating' | 'release_date' | 'title' | 'revenue' | 'vote_count';
   sortOrder?: 'asc' | 'desc';
 }
 
