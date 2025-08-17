@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppDispatch } from '@/lib/hooks';
 import { setUser } from '@/lib/slices/userSlice';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -14,7 +14,9 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+  const redirectTo = searchParams.get('redirectTo') || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +62,7 @@ export default function LoginPage() {
           
           // Small delay to show success message before redirect
           setTimeout(() => {
-            router.push('/');
+            router.push(redirectTo);
           }, 1000);
         }
       }
