@@ -64,8 +64,8 @@ class TMDbService {
     // Otherwise use discover API for filter-only queries (no search text)
     const allResults: Movie[] = [];
     let currentPage = 1;
-    const maxPages = 5; // Limit to prevent excessive API calls
-    const targetResults = 100; // Try to get at least 100 results
+    const maxPages = 25; // Allow up to 25 pages (500 results)
+    const targetResults = 500; // Try to get up to 500 results
     
     while (currentPage <= maxPages && allResults.length < targetResults) {
       const params: Record<string, any> = {
