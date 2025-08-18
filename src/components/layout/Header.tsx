@@ -29,9 +29,11 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="text-2xl lg:text-3xl font-black text-netflix-red">
-                NETFLIX
-              </div>
+              <img 
+                src="/nextpick.png" 
+                alt="NextPick" 
+                className="h-8 lg:h-10 w-auto"
+              />
             </Link>
 
             {/* Desktop Navigation */}
