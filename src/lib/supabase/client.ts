@@ -23,7 +23,7 @@ export function createClient() {
     },
     global: {
       headers: {
-        'x-client-info': 'nightqueue-web'
+        'x-client-info': 'nextpick-web'
       }
     }
   });
