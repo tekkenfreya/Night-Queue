@@ -82,9 +82,9 @@ function MovieRow({ title, movies }: MovieRowProps) {
           id={`row-${title.replace(/\s+/g, '-')}`}
           className="flex overflow-x-scroll scrollbar-hide space-x-6 px-4 md:px-12"
         >
-          {movies.map((movie) => (
+          {movies.map((movie, index) => (
             <div 
-              key={movie.id} 
+              key={`${movie.id}-${index}`} 
               className="flex-none w-48 hover:scale-105 transition-transform duration-300 cursor-pointer group"
               onClick={() => setSelectedMovie(movie)}
             >
@@ -217,34 +217,64 @@ export default function Home() {
             if (selectedTrailer?.key) {
               setHeroTrailerKey(selectedTrailer.key);
               
-              // Create iframe with reliable autoplay (muted)
+              // Create iframe with improved autoplay for slow connections
               const iframe = document.createElement('iframe');
-              iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${window.location.origin}&start=0`;
+              iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&start=0&preload=auto`;
               iframe.style.position = 'absolute';
-              iframe.style.left = '-9999px';
+              iframe.style.left = '0';
+              iframe.style.top = '0';
               iframe.style.width = '100%';
               iframe.style.height = '100%';
               iframe.style.border = 'none';
+              iframe.style.opacity = '0';
               iframe.allow = 'autoplay; encrypted-media';
               iframe.loading = 'eager';
+              iframe.title = `${randomMovie.title} Trailer`;
               
               let loadTimeout: NodeJS.Timeout;
+              let readyTimeout: NodeJS.Timeout;
+              let retryCount = 0;
+              const maxRetries = 2;
               
               const handleLoad = () => {
                 clearTimeout(loadTimeout);
+                clearTimeout(readyTimeout);
+                
                 setIframeRef(iframe);
-                setTrailerReady(true);
-                setShowTrailer(true);
                 setIsMuted(true);
                 setAutoplayBlocked(true); // Show mute control
+                
+                // Give iframe time to start playing before showing
+                readyTimeout = setTimeout(() => {
+                  setTrailerReady(true);
+                  setShowTrailer(true);
+                  iframe.style.opacity = '1';
+                }, 500);
+              };
+              
+              const handleError = () => {
+                console.warn('Iframe load error, retrying...', retryCount + 1);
+                if (retryCount < maxRetries) {
+                  retryCount++;
+                  setTimeout(() => {
+                    iframe.src = iframe.src + `&retry=${retryCount}`;
+                  }, 1000);
+                } else {
+                  // Fallback: proceed without video
+                  setTrailerReady(true);
+                }
               };
               
               iframe.onload = handleLoad;
+              iframe.onerror = handleError;
               
-              // Fallback timeout
+              // Extended timeout for slow connections
               loadTimeout = setTimeout(() => {
-                handleLoad();
-              }, 3000);
+                if (!trailerReady) {
+                  console.warn('Iframe load timeout, proceeding anyway');
+                  handleLoad();
+                }
+              }, 8000); // Increased from 3s to 8s
               
               document.body.appendChild(iframe);
             } else {
@@ -409,7 +439,7 @@ export default function Home() {
       {featuredMovie ? (
         <div className="hero-section relative overflow-hidden -mt-20 lg:-mt-24" style={{ height: 'calc(100vh + 5rem)', minHeight: 'calc(100vh + 6rem)' }}>
           {/* Background - Always show trailer if available, fallback to image */}
-          {iframeRef ? (
+          {iframeRef && showTrailer ? (
             <div className="absolute inset-0 overflow-hidden">
               <div 
                 ref={(container) => {
@@ -435,24 +465,41 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
               
               {/* Mute/Unmute button */}
-              {iframeRef ? (
-                <button 
-                  onClick={toggleMute}
-                  className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors"
-                  title={isMuted ? "Unmute" : "Mute"}
-                >
-                  {isMuted ? (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    </svg>
-                  )}
-                </button>
-              ) : null}
+              <button 
+                onClick={toggleMute}
+                className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors"
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          ) : heroTrailerKey && !showTrailer ? (
+            // Show loading state while trailer is loading
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${tmdbService.getImageUrl(featuredMovie.backdrop_path, 'original')})`
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+              
+              {/* Trailer loading indicator */}
+              <div className="absolute top-4 right-4 z-20 bg-black/50 text-white p-3 rounded-full">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className="text-sm">Loading trailer...</span>
+                </div>
+              </div>
             </div>
           ) : (
             <div 

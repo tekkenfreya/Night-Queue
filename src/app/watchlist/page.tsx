@@ -91,7 +91,7 @@ function MovieRow({ title, movies }: MovieRowProps) {
         >
           {movies.map((item, index) => (
             <div 
-              key={item.id} 
+              key={`${item.id}-${index}`} 
               className="flex-none w-48 group"
             >
               <div className="relative">
