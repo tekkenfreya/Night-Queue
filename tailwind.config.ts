@@ -13,6 +13,11 @@ const config = {
           gray: '#333333',
         }
       },
+      fontFamily: {
+        'sans': ['Noto Sans', 'sans-serif'],
+        'heading': ['Barlow', 'sans-serif'],
+        'p5hatty': ['P5hatty', 'sans-serif'],
+      },
     },
   },
   plugins: [],

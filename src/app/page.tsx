@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
-import { addToWatchlist, removeFromWatchlist, addToWatchlistDB } from '@/lib/slices/watchlistSlice';
+import { addToWatchlistDB, removeFromWatchlistDB } from '@/lib/slices/watchlistSlice';
 import { MovieModal } from '@/components/movies/MovieModal';
 
 interface MovieRowProps {
@@ -40,10 +40,19 @@ function MovieRow({ title, movies }: MovieRowProps) {
     if (!isAuthenticated || !currentUser) return;
 
     if (isInWatchlist(movie.id)) {
-      dispatch(removeFromWatchlist(movie.id));
+      const watchlistItem = watchlistItems.find(item => item.movieId === movie.id);
+      if (watchlistItem) {
+        try {
+          await dispatch(removeFromWatchlistDB({ 
+            userId: currentUser.id, 
+            itemId: watchlistItem.id, 
+            movieId: movie.id 
+          })).unwrap();
+        } catch (error) {
+          console.error('Failed to remove from database:', error);
+        }
+      }
     } else {
-      dispatch(addToWatchlist({ movie, status: 'want_to_watch' }));
-      // Also sync with database if user is authenticated
       try {
         await dispatch(addToWatchlistDB({ 
           userId: currentUser.id, 
@@ -51,14 +60,14 @@ function MovieRow({ title, movies }: MovieRowProps) {
           status: 'want_to_watch' 
         })).unwrap();
       } catch (error) {
-        console.error('Failed to sync with database:', error);
+        console.error('Failed to add to database:', error);
       }
     }
   };
 
   return (
     <div className="mb-12">
-      <h2 className="text-2xl font-bold text-white mb-6 px-4 md:px-12">{title}</h2>
+      <h2 className="font-heading text-2xl font-black text-white mb-6 px-4 md:px-12 tracking-wide uppercase">{title}</h2>
       <div className="relative group">
         <button 
           onClick={scrollLeft}
@@ -342,9 +351,19 @@ export default function Home() {
     if (!featuredMovie || !isAuthenticated || !currentUser) return;
 
     if (isInWatchlist(featuredMovie.id)) {
-      dispatch(removeFromWatchlist(featuredMovie.id));
+      const watchlistItem = watchlistItems.find(item => item.movieId === featuredMovie.id);
+      if (watchlistItem) {
+        try {
+          await dispatch(removeFromWatchlistDB({ 
+            userId: currentUser.id, 
+            itemId: watchlistItem.id, 
+            movieId: featuredMovie.id 
+          })).unwrap();
+        } catch (error) {
+          console.error('Failed to remove from database:', error);
+        }
+      }
     } else {
-      dispatch(addToWatchlist({ movie: featuredMovie, status: 'want_to_watch' }));
       try {
         await dispatch(addToWatchlistDB({ 
           userId: currentUser.id, 
@@ -352,7 +371,7 @@ export default function Home() {
           status: 'want_to_watch' 
         })).unwrap();
       } catch (error) {
-        console.error('Failed to sync with database:', error);
+        console.error('Failed to add to database:', error);
       }
     }
   };
@@ -388,26 +407,29 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white">
       {/* Featured Movie Hero Section */}
       {featuredMovie ? (
-        <div className="hero-section relative h-screen overflow-hidden">
+        <div className="hero-section relative overflow-hidden -mt-20 lg:-mt-24" style={{ height: 'calc(100vh + 5rem)', minHeight: 'calc(100vh + 6rem)' }}>
           {/* Background - Always show trailer if available, fallback to image */}
           {iframeRef ? (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 overflow-hidden">
               <div 
                 ref={(container) => {
                   if (container && iframeRef && !container.contains(iframeRef)) {
-                    // Move preloaded iframe to visible container
+                    // Move preloaded iframe to visible container with aggressive scaling
                     iframeRef.style.position = 'absolute';
-                    iframeRef.style.left = '0';
-                    iframeRef.style.top = '0';
-                    iframeRef.style.width = '100%';
-                    iframeRef.style.height = '100%';
-                    iframeRef.style.transform = 'scale(1.2)';
+                    iframeRef.style.left = '50%';
+                    iframeRef.style.top = '50%';
+                    iframeRef.style.width = '133vw'; // Even more oversized to eliminate all black bars
+                    iframeRef.style.height = '75vw'; // 133% of 16:9 aspect ratio
+                    iframeRef.style.minHeight = '133vh'; // Oversized height
+                    iframeRef.style.minWidth = '236.44vh'; // 133% of 16:9 aspect ratio
+                    iframeRef.style.transform = 'translate(-50%, -50%) scale(1.1)'; // Additional scale for safety
                     iframeRef.style.transformOrigin = 'center';
                     iframeRef.style.pointerEvents = 'none';
+                    iframeRef.style.filter = 'brightness(0.9)'; // Slightly darken to reduce harsh edges
                     container.appendChild(iframeRef);
                   }
                 }}
-                className="w-full h-full"
+                className="w-full h-full bg-black"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -445,8 +467,8 @@ export default function Home() {
           )}
 
           {/* Hero Content */}
-          <div className="absolute bottom-32 left-4 md:left-12 z-10 max-w-xl">
-            <h1 className="text-5xl md:text-7xl font-bold mb-4">{featuredMovie.title}</h1>
+          <div className="absolute bottom-40 left-4 md:left-12 z-10 max-w-xl">
+            <h1 className="font-heading text-5xl md:text-7xl font-bold mb-4">{featuredMovie.title}</h1>
             <p className="text-lg md:text-xl mb-6 line-clamp-3">{featuredMovie.overview}</p>
             
             <div className="flex items-center space-x-4 mb-6">
@@ -501,15 +523,25 @@ export default function Home() {
       )}
 
       {/* Movie Rows */}
-      <div className="relative z-10 -mt-16 pb-20">
-        <MovieRow title="Trending Now" movies={movieCategories.trending} />
-        <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} />
-        <MovieRow title="Action & Adventure" movies={movieCategories.action} />
-        <MovieRow title="Horror Movies" movies={movieCategories.horror} />
-        <MovieRow title="Comedy Movies" movies={movieCategories.comedy} />
-        <MovieRow title="Drama Movies" movies={movieCategories.drama} />
-        <MovieRow title="Sci-Fi Movies" movies={movieCategories.sciFi} />
-        <MovieRow title="Thriller Movies" movies={movieCategories.thriller} />
+      <div className="relative bg-gradient-to-b from-black via-gray-900/30 to-black">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px'
+          }} />
+        </div>
+        
+        <div className="relative z-10 -mt-16 pb-20">
+          <MovieRow title="Trending Now" movies={movieCategories.trending} />
+          <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} />
+          <MovieRow title="Action & Adventure" movies={movieCategories.action} />
+          <MovieRow title="Horror Movies" movies={movieCategories.horror} />
+          <MovieRow title="Comedy Movies" movies={movieCategories.comedy} />
+          <MovieRow title="Drama Movies" movies={movieCategories.drama} />
+          <MovieRow title="Sci-Fi Movies" movies={movieCategories.sciFi} />
+          <MovieRow title="Thriller Movies" movies={movieCategories.thriller} />
+        </div>
       </div>
 
       {/* Hero Movie Modal */}

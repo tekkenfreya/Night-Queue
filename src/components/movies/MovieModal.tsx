@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { addToWatchlist, removeFromWatchlist } from '@/lib/slices/watchlistSlice';
+import { addToWatchlistDB, removeFromWatchlistDB } from '@/lib/slices/watchlistSlice';
 
 interface MovieModalProps {
   movie: Movie;
@@ -23,7 +23,7 @@ interface MovieVideo {
 
 export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
   const dispatch = useAppDispatch();
-  const { isAuthenticated } = useAppSelector(state => state.user);
+  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
   const watchlistItems = useAppSelector(state => state.watchlist.items);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
@@ -83,14 +83,25 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
   const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       return; // Do nothing if not authenticated
     }
     
     if (isInWatchlist) {
-      dispatch(removeFromWatchlist(movie.id));
+      const watchlistItem = watchlistItems.find(item => item.movieId === movie.id);
+      if (watchlistItem) {
+        dispatch(removeFromWatchlistDB({ 
+          userId: currentUser.id, 
+          itemId: watchlistItem.id, 
+          movieId: movie.id 
+        }));
+      }
     } else {
-      dispatch(addToWatchlist({ movie, status: 'want_to_watch' }));
+      dispatch(addToWatchlistDB({ 
+        userId: currentUser.id, 
+        movie, 
+        status: 'want_to_watch' 
+      }));
     }
   };
 
@@ -134,7 +145,7 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
               </div>
             ) : trailerKey ? (
               <iframe
-                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=1&rel=0`}
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=1&rel=0&hd=1&vq=hd720`}
                 title={`${movie.title} Trailer`}
                 className="w-full h-full"
                 allowFullScreen

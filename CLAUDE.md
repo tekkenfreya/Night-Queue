@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NightQueue - A web application for movie tracking and discovery platform with search, personal watchlist management, and enhanced features.
+NextPick - A web application for movie tracking and discovery platform with search, personal watchlist management, and enhanced features.
 
 ## Technology Stack
 - **Framework**: Next.js (React with TypeScript)

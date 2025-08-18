@@ -18,33 +18,48 @@ const initialState: WatchlistState = {
 export const fetchWatchlist = createAsyncThunk(
   'watchlist/fetchWatchlist',
   async (userId: string) => {
-    return await databaseService.getWatchlist(userId);
+    console.log('Fetching watchlist for user:', userId);
+    const result = await databaseService.getWatchlist(userId);
+    console.log('Fetched watchlist:', result);
+    return result;
   }
 );
 
 export const addToWatchlistDB = createAsyncThunk(
   'watchlist/addToWatchlistDB',
-  async ({ userId, movie, status }: { userId: string; movie: Movie; status: WatchlistItem['status'] }) => {
+  async ({ userId, movie, status }: { userId: string; movie: Movie; status: WatchlistItem['status'] }, { dispatch, getState }) => {
     const success = await databaseService.addToWatchlist(userId, movie, status);
     if (!success) throw new Error('Failed to add to watchlist');
+    
+    // Only refresh if the operation was successful - no need to wait for this
+    setTimeout(() => dispatch(fetchWatchlist(userId)), 0);
+    
     return { movie, status };
   }
 );
 
 export const removeFromWatchlistDB = createAsyncThunk(
   'watchlist/removeFromWatchlistDB',
-  async ({ userId, itemId, movieId }: { userId: string; itemId: string; movieId: number }) => {
+  async ({ userId, itemId, movieId }: { userId: string; itemId: string; movieId: number }, { dispatch }) => {
     const success = await databaseService.removeFromWatchlist(userId, itemId);
     if (!success) throw new Error('Failed to remove from watchlist');
+    
+    // Refresh the watchlist to get the latest data
+    dispatch(fetchWatchlist(userId));
+    
     return movieId;
   }
 );
 
 export const updateWatchlistItemDB = createAsyncThunk(
   'watchlist/updateWatchlistItemDB',
-  async ({ userId, itemId, updates }: { userId: string; itemId: string; updates: Partial<WatchlistItem> }) => {
+  async ({ userId, itemId, updates }: { userId: string; itemId: string; updates: Partial<WatchlistItem> }, { dispatch }) => {
     const success = await databaseService.updateWatchlistItem(userId, itemId, updates);
     if (!success) throw new Error('Failed to update watchlist item');
+    
+    // Refresh the watchlist to get the latest data
+    dispatch(fetchWatchlist(userId));
+    
     return { itemId, updates };
   }
 );
@@ -128,17 +143,38 @@ const watchlistSlice = createSlice({
       })
       
       // Add to watchlist
-      .addCase(addToWatchlistDB.pending, (state) => {
+      .addCase(addToWatchlistDB.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        
+        // Optimistic update - immediately add to UI
+        const { movie, status } = action.meta.arg;
+        const existingItem = state.items.find(item => item.movieId === movie.id);
+        
+        if (!existingItem) {
+          const newItem: WatchlistItem = {
+            id: `temp-${movie.id}-${Date.now()}`,
+            movieId: movie.id,
+            movie,
+            status,
+            dateAdded: new Date().toISOString(),
+          };
+          state.items.unshift(newItem); // Add to beginning for better UX
+        } else {
+          existingItem.status = status;
+        }
       })
-      .addCase(addToWatchlistDB.fulfilled, (state, action) => {
+      .addCase(addToWatchlistDB.fulfilled, (state) => {
         state.loading = false;
-        // Optimistically add to local state - will be replaced by next fetch
+        // Real data will come from the background refresh
       })
       .addCase(addToWatchlistDB.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to add to watchlist';
+        
+        // Remove optimistic update on failure
+        const { movie } = action.meta.arg;
+        state.items = state.items.filter(item => !item.id.startsWith(`temp-${movie.id}`));
       })
       
       // Remove from watchlist

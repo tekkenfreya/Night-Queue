@@ -3,6 +3,7 @@ import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { useAppDispatch } from '@/lib/hooks';
 import { setUser, logout } from '@/lib/slices/userSlice';
+import { fetchWatchlist, clearWatchlist } from '@/lib/slices/watchlistSlice';
 
 export function useAuth() {
   const [loading, setLoading] = useState(true);
@@ -42,9 +43,13 @@ export function useAuth() {
           },
         };
         dispatch(setUser(reduxUser));
+        // Load user's watchlist from database
+        console.log('Auth: Loading watchlist for user:', session.user.id);
+        dispatch(fetchWatchlist(session.user.id));
       } else {
         // Ensure Redux state is cleared if no session
         dispatch(logout());
+        dispatch(clearWatchlist());
       }
       
       setLoading(false);
@@ -70,8 +75,12 @@ export function useAuth() {
             },
           };
           dispatch(setUser(reduxUser));
+          // Load user's watchlist from database
+          console.log('Auth: Loading watchlist for user:', session.user.id);
+          dispatch(fetchWatchlist(session.user.id));
         } else {
           dispatch(logout());
+          dispatch(clearWatchlist());
         }
         
         setLoading(false);
@@ -86,6 +95,7 @@ export function useAuth() {
       // Clear all local state first
       setAuthUser(null);
       dispatch(logout());
+      dispatch(clearWatchlist());
       
       // Sign out from Supabase
       await supabase.auth.signOut();
@@ -116,6 +126,9 @@ export function useAuth() {
         },
       };
       dispatch(setUser(reduxUser));
+      // Load user's watchlist from database
+      console.log('Auth: Loading watchlist for user:', session.user.id);
+      dispatch(fetchWatchlist(session.user.id));
     }
   };
 

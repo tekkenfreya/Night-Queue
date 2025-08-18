@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
-  title: 'NightQueue - Movie Tracker',
+  title: 'NextPick - Movie Tracker',
   description: 'Track and discover movies with your personal watchlist',
 }
 
@@ -17,11 +17,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-netflix-dark text-white min-h-screen flex flex-col">
+      <body className="bg-gradient-to-b from-gray-900 via-netflix-dark to-black text-white min-h-screen flex flex-col">
         <ReduxProvider>
           <AuthProvider>
             <Header />
-            <main className="flex-1 pt-16 lg:pt-20">
+            <main className="flex-1 pt-20 lg:pt-24">
               {children}
             </main>
             <Footer />
