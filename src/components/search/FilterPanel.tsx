@@ -45,7 +45,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.genre || ''}
             onChange={(e) => handleFilterChange('genre', e.target.value ? parseInt(e.target.value) : null)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">All Genres</option>
             {genres.map((genre) => (
@@ -61,7 +61,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.year || ''}
             onChange={(e) => handleFilterChange('year', e.target.value ? parseInt(e.target.value) : null)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">Any Year</option>
             {years.map((year) => (
@@ -77,7 +77,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.rating || ''}
             onChange={(e) => handleFilterChange('rating', e.target.value ? parseFloat(e.target.value) : null)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">Any Rating</option>
             <option value="5">5+ Stars (Good)</option>
@@ -93,7 +93,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.country || ''}
             onChange={(e) => handleFilterChange('country', e.target.value || null)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">All Countries</option>
             {countries.map((country) => (
@@ -109,7 +109,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.sortBy || 'popularity'}
             onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="popularity">Popularity</option>
             <option value="rating">Rating</option>
@@ -124,7 +124,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <select
             value={filters.sortOrder || 'desc'}
             onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
+            className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="desc">High to Low</option>
             <option value="asc">Low to High</option>
