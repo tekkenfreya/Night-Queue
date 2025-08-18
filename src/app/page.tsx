@@ -407,6 +407,7 @@ export default function Home() {
   };
 
   const toggleMute = () => {
+    console.log('toggleMute clicked!', { iframeRef: !!iframeRef, heroTrailerKey, isMuted });
     if (iframeRef && heroTrailerKey) {
       const newMutedState = !isMuted;
       setIsMuted(newMutedState);
@@ -417,6 +418,7 @@ export default function Home() {
         newMutedState ? /mute=0/ : /mute=1/, 
         newMutedState ? 'mute=1' : 'mute=0'
       );
+      console.log('Updating iframe src:', { currentSrc, newSrc });
       iframeRef.src = newSrc;
     }
   };
@@ -499,8 +501,9 @@ export default function Home() {
           {heroTrailerKey ? (
             <button 
               onClick={toggleMute}
-              className="absolute top-4 right-4 z-30 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors cursor-pointer"
+              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors cursor-pointer"
               title={isMuted ? "Unmute" : "Mute"}
+              style={{ pointerEvents: 'auto' }}
             >
               {isMuted ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
