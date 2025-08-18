@@ -65,6 +65,17 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
+  
+  /* Fix for dropdown option styling */
+  select option {
+    background-color: #141414 !important;
+    color: white !important;
+  }
+  
+  select {
+    background-color: #141414 !important;
+    color: white !important;
+  }
 }
 
 @keyframes fadeIn {

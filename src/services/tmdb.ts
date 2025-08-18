@@ -33,7 +33,8 @@ class TMDbService {
 
   async searchMovies(query: string, filters: SearchFilters = {}): Promise<ApiResponse<Movie>> {
     // Check if filters are applied beyond just search query
-    const hasAdvancedFilters = filters.genre || filters.rating || filters.country || filters.cast || filters.sortBy;
+    // Note: genre=null means "All Genres" which is not a filter constraint
+    const hasAdvancedFilters = (filters.genre && filters.genre > 0) || filters.rating || filters.country || filters.cast || filters.sortBy;
     
     if (hasAdvancedFilters) {
       // Use discover API for better filter support and fetch multiple pages

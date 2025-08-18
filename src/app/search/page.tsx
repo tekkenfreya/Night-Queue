@@ -23,7 +23,11 @@ export default function SearchPage() {
       dispatch(searchMovies({ query, filters }));
     } else {
       // If no query but filters exist, use discover
-      const hasFilters = Object.values(filters).some(value => value !== undefined && value !== null && value !== '');
+      const hasFilters = Object.values(filters).some(value => {
+        if (value === undefined || value === null || value === '') return false;
+        // For genre, null/undefined means "All Genres" so not a filter
+        return true;
+      });
       if (hasFilters) {
         dispatch(discoverMovies(filters));
       }
