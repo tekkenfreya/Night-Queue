@@ -112,10 +112,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white"
           >
             <option value="popularity">Popularity</option>
-            <option value="vote_average">Rating</option>
+            <option value="rating">Rating</option>
             <option value="release_date">Release Date</option>
             <option value="title">Title</option>
-            <option value="revenue">Box Office</option>
+            <option value="vote_count">Popularity (Votes)</option>
           </select>
         </div>
 

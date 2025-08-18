@@ -5,6 +5,7 @@ import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
 import { addToWatchlist, removeFromWatchlist, addToWatchlistDB } from '@/lib/slices/watchlistSlice';
+import { MovieModal } from '@/components/movies/MovieModal';
 
 interface MovieRowProps {
   title: string;
@@ -15,6 +16,7 @@ function MovieRow({ title, movies }: MovieRowProps) {
   const dispatch = useAppDispatch();
   const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
   const { items: watchlistItems } = useAppSelector(state => state.watchlist);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const scrollLeft = () => {
     const container = document.getElementById(`row-${title.replace(/\s+/g, '-')}`);
@@ -75,6 +77,7 @@ function MovieRow({ title, movies }: MovieRowProps) {
             <div 
               key={movie.id} 
               className="flex-none w-48 hover:scale-105 transition-transform duration-300 cursor-pointer group"
+              onClick={() => setSelectedMovie(movie)}
             >
               <div className="relative">
                 <img
@@ -110,7 +113,6 @@ function MovieRow({ title, movies }: MovieRowProps) {
                   </div>
                 ) : null}
               </div>
-              <h3 className="text-white text-sm mt-2 truncate">{movie.title}</h3>
             </div>
           ))}
         </div>
@@ -124,13 +126,32 @@ function MovieRow({ title, movies }: MovieRowProps) {
           </svg>
         </button>
       </div>
+
+      {selectedMovie ? (
+        <MovieModal 
+          movie={selectedMovie}
+          isOpen={true}
+          onClose={() => setSelectedMovie(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
 export default function Home() {
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
+  const { items: watchlistItems } = useAppSelector(state => state.watchlist);
   const [featuredMovie, setFeaturedMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [heroModalOpen, setHeroModalOpen] = useState(false);
+  const [heroTrailerKey, setHeroTrailerKey] = useState<string | null>(null);
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [trailerReady, setTrailerReady] = useState(false);
+  const [iframeRef, setIframeRef] = useState<HTMLIFrameElement | null>(null);
+  const [isMuted, setIsMuted] = useState(false); // Start unmuted
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [isVideoVisible, setIsVideoVisible] = useState(true);
   const [movieCategories, setMovieCategories] = useState({
     trending: [] as Movie[],
     topRated: [] as Movie[],
@@ -151,6 +172,82 @@ export default function Home() {
         const popularResponse = await tmdbService.getPopularMovies();
         const randomMovie = popularResponse.results[Math.floor(Math.random() * popularResponse.results.length)];
         setFeaturedMovie(randomMovie);
+
+        // Load trailer for featured movie
+        if (randomMovie) {
+          try {
+            const videosResponse = await tmdbService.getMovieVideos(randomMovie.id);
+            const youtubeVideos = videosResponse.results.filter((video: any) => video.site === 'YouTube');
+            
+            // Priority order for trailer selection (same as modal)
+            const findTrailer = () => {
+              let trailer = youtubeVideos.find((video: any) => 
+                video.type === 'Trailer' && 
+                (video.name.toLowerCase().includes('official') || 
+                 video.name.toLowerCase().includes('main'))
+              );
+              
+              if (!trailer) {
+                trailer = youtubeVideos.find((video: any) => video.type === 'Trailer');
+              }
+              
+              if (!trailer) {
+                trailer = youtubeVideos.find((video: any) => video.type === 'Teaser');
+              }
+              
+              if (!trailer) {
+                trailer = youtubeVideos.find((video: any) => 
+                  video.name.toLowerCase().includes('trailer')
+                );
+              }
+              
+              return trailer;
+            };
+            
+            const selectedTrailer = findTrailer();
+            if (selectedTrailer?.key) {
+              setHeroTrailerKey(selectedTrailer.key);
+              
+              // Create iframe with reliable autoplay (muted)
+              const iframe = document.createElement('iframe');
+              iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${window.location.origin}&start=0`;
+              iframe.style.position = 'absolute';
+              iframe.style.left = '-9999px';
+              iframe.style.width = '100%';
+              iframe.style.height = '100%';
+              iframe.style.border = 'none';
+              iframe.allow = 'autoplay; encrypted-media';
+              iframe.loading = 'eager';
+              
+              let loadTimeout: NodeJS.Timeout;
+              
+              const handleLoad = () => {
+                clearTimeout(loadTimeout);
+                setIframeRef(iframe);
+                setTrailerReady(true);
+                setShowTrailer(true);
+                setIsMuted(true);
+                setAutoplayBlocked(true); // Show mute control
+              };
+              
+              iframe.onload = handleLoad;
+              
+              // Fallback timeout
+              loadTimeout = setTimeout(() => {
+                handleLoad();
+              }, 3000);
+              
+              document.body.appendChild(iframe);
+            } else {
+              setTrailerReady(true); // No trailer available, proceed anyway
+            }
+          } catch (error) {
+            console.error('Error fetching hero trailer:', error);
+            setTrailerReady(true); // Proceed without trailer if error
+          }
+        } else {
+          setTrailerReady(true); // No featured movie, proceed anyway
+        }
 
         // Load movie categories
         const [
@@ -185,13 +282,95 @@ export default function Home() {
         });
       } catch (error) {
         console.error('Error loading movies:', error);
-      } finally {
-        setIsLoading(false);
+        setTrailerReady(true); // Proceed if error
       }
+      // Don't set isLoading to false here - wait for trailer ready
     };
 
     loadMovies();
   }, []);
+
+  // Set loading to false when trailer is ready
+  useEffect(() => {
+    if (trailerReady) {
+      setIsLoading(false);
+    }
+  }, [trailerReady]);
+
+  // Scroll detection to pause video when out of view
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroSection = document.querySelector('.hero-section');
+      if (heroSection) {
+        const rect = heroSection.getBoundingClientRect();
+        const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+        
+        if (isVisible !== isVideoVisible) {
+          setIsVideoVisible(isVisible);
+          
+          // Pause/resume video based on visibility
+          if (iframeRef) {
+            if (isVisible) {
+              // Resume video by reloading with autoplay
+              const currentSrc = iframeRef.src;
+              if (currentSrc && !currentSrc.includes('autoplay=1')) {
+                const newSrc = currentSrc.replace('autoplay=0', 'autoplay=1');
+                iframeRef.src = newSrc;
+              }
+            } else {
+              // Pause video by removing autoplay
+              const currentSrc = iframeRef.src;
+              if (currentSrc && currentSrc.includes('autoplay=1')) {
+                const newSrc = currentSrc.replace('autoplay=1', 'autoplay=0');
+                iframeRef.src = newSrc;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [iframeRef, isVideoVisible]);
+
+  const isInWatchlist = (movieId: number) => {
+    return watchlistItems.some(item => item.movieId === movieId);
+  };
+
+  const handleHeroWatchlistToggle = async () => {
+    if (!featuredMovie || !isAuthenticated || !currentUser) return;
+
+    if (isInWatchlist(featuredMovie.id)) {
+      dispatch(removeFromWatchlist(featuredMovie.id));
+    } else {
+      dispatch(addToWatchlist({ movie: featuredMovie, status: 'want_to_watch' }));
+      try {
+        await dispatch(addToWatchlistDB({ 
+          userId: currentUser.id, 
+          movie: featuredMovie, 
+          status: 'want_to_watch' 
+        })).unwrap();
+      } catch (error) {
+        console.error('Failed to sync with database:', error);
+      }
+    }
+  };
+
+  const toggleMute = () => {
+    if (iframeRef && heroTrailerKey) {
+      const newMutedState = !isMuted;
+      setIsMuted(newMutedState);
+      
+      // Update iframe src with new mute parameter
+      const currentSrc = iframeRef.src;
+      const newSrc = currentSrc.replace(
+        newMutedState ? /mute=0/ : /mute=1/, 
+        newMutedState ? 'mute=1' : 'mute=0'
+      );
+      iframeRef.src = newSrc;
+    }
+  };
 
   // Show loading screen until all data is loaded
   if (isLoading) {
@@ -209,17 +388,61 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white">
       {/* Featured Movie Hero Section */}
       {featuredMovie ? (
-        <div className="relative h-screen overflow-hidden">
-          {/* Background Image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${tmdbService.getImageUrl(featuredMovie.backdrop_path, 'original')})`
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-          </div>
+        <div className="hero-section relative h-screen overflow-hidden">
+          {/* Background - Always show trailer if available, fallback to image */}
+          {iframeRef ? (
+            <div className="absolute inset-0">
+              <div 
+                ref={(container) => {
+                  if (container && iframeRef && !container.contains(iframeRef)) {
+                    // Move preloaded iframe to visible container
+                    iframeRef.style.position = 'absolute';
+                    iframeRef.style.left = '0';
+                    iframeRef.style.top = '0';
+                    iframeRef.style.width = '100%';
+                    iframeRef.style.height = '100%';
+                    iframeRef.style.transform = 'scale(1.2)';
+                    iframeRef.style.transformOrigin = 'center';
+                    iframeRef.style.pointerEvents = 'none';
+                    container.appendChild(iframeRef);
+                  }
+                }}
+                className="w-full h-full"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+              
+              {/* Mute/Unmute button */}
+              {iframeRef ? (
+                <button 
+                  onClick={toggleMute}
+                  className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors"
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                  )}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${tmdbService.getImageUrl(featuredMovie.backdrop_path, 'original')})`
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+            </div>
+          )}
 
           {/* Hero Content */}
           <div className="absolute bottom-32 left-4 md:left-12 z-10 max-w-xl">
@@ -237,18 +460,37 @@ export default function Home() {
             </div>
 
             <div className="flex space-x-4">
-              <button className="bg-white text-black px-8 py-3 rounded-md font-bold hover:bg-gray-200 transition-colors flex items-center space-x-2">
+              <button 
+                onClick={() => setHeroModalOpen(true)}
+                className="bg-white text-black px-8 py-3 rounded-md font-bold hover:bg-gray-200 transition-colors flex items-center space-x-2"
+              >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                 </svg>
                 <span>Play</span>
               </button>
-              <button className="bg-gray-600/80 text-white px-8 py-3 rounded-md font-bold hover:bg-gray-600 transition-colors flex items-center space-x-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>More Info</span>
-              </button>
+              {isAuthenticated ? (
+                <button 
+                  onClick={handleHeroWatchlistToggle}
+                  className={`px-8 py-3 rounded-md font-bold transition-colors flex items-center space-x-2 ${
+                    featuredMovie && isInWatchlist(featuredMovie.id)
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-gray-600/80 hover:bg-gray-600 text-white'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>{featuredMovie && isInWatchlist(featuredMovie.id) ? '✓ In List' : 'Add to List'}</span>
+                </button>
+              ) : (
+                <button className="bg-gray-600/80 text-white px-8 py-3 rounded-md font-bold hover:bg-gray-600 transition-colors flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Sign in to Add</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -269,6 +511,15 @@ export default function Home() {
         <MovieRow title="Sci-Fi Movies" movies={movieCategories.sciFi} />
         <MovieRow title="Thriller Movies" movies={movieCategories.thriller} />
       </div>
+
+      {/* Hero Movie Modal */}
+      {featuredMovie && heroModalOpen ? (
+        <MovieModal 
+          movie={featuredMovie}
+          isOpen={heroModalOpen}
+          onClose={() => setHeroModalOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
