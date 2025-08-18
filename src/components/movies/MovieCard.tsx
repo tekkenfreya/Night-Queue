@@ -6,6 +6,7 @@ import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { addToWatchlist, removeFromWatchlist } from '@/lib/slices/watchlistSlice';
+import { MovieModal } from './MovieModal';
 
 interface MovieCardProps {
   movie: Movie;
@@ -16,6 +17,7 @@ export function MovieCard({ movie, showFullDetails = false }: MovieCardProps) {
   const dispatch = useAppDispatch();
   const watchlistItems = useAppSelector(state => state.watchlist.items);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const isInWatchlist = watchlistItems.some(item => item.movieId === movie.id);
   
@@ -91,10 +93,11 @@ export function MovieCard({ movie, showFullDetails = false }: MovieCardProps) {
   }
 
   return (
-    <div 
-      className="bg-gray-800 rounded-lg overflow-hidden hover:scale-105 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-2xl animate-slideUp"
-      onClick={() => setIsExpanded(true)}
-    >
+    <>
+      <div 
+        className="bg-gray-800 rounded-lg overflow-hidden hover:scale-105 transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-2xl animate-slideUp"
+        onClick={() => setIsModalOpen(true)}
+      >
       <div className="relative aspect-[2/3]">
         <Image
           src={tmdbService.getImageUrl(movie.poster_path)}
@@ -106,7 +109,7 @@ export function MovieCard({ movie, showFullDetails = false }: MovieCardProps) {
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="absolute bottom-4 left-4 right-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        <div className="absolute top-1/2 left-4 right-4 transform -translate-y-1/2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <button
             onClick={handleWatchlistToggle}
             className={`w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -125,17 +128,13 @@ export function MovieCard({ movie, showFullDetails = false }: MovieCardProps) {
           </span>
         </div>
       </div>
-      
-      <div className="p-4">
-        <h3 className="font-semibold text-white mb-2 line-clamp-2 group-hover:text-netflix-red transition-colors">
-          {movie.title}
-        </h3>
-        
-        <div className="flex justify-between items-center text-sm text-gray-400">
-          <span>{getReleaseYear()}</span>
-          <span className="text-xs bg-gray-700 px-2 py-1 rounded">Click for details</span>
-        </div>
       </div>
-    </div>
+
+      <MovieModal 
+        movie={movie}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 }

@@ -68,9 +68,26 @@ class TMDbService {
     const targetResults = 500; // Try to get up to 500 results
     
     while (currentPage <= maxPages && allResults.length < targetResults) {
+      const getSortBy = (sortBy?: string, sortOrder?: string) => {
+        const order = sortOrder || 'desc';
+        switch (sortBy) {
+          case 'rating':
+            return `vote_average.${order}`;
+          case 'release_date':
+            return `release_date.${order}`;
+          case 'title':
+            return `title.${order}`;
+          case 'vote_count':
+            return `vote_count.${order}`;
+          case 'popularity':
+          default:
+            return `popularity.${order}`;
+        }
+      };
+
       const params: Record<string, any> = {
         page: currentPage,
-        sort_by: filters.sortBy ? `${filters.sortBy === 'rating' ? 'vote_average' : filters.sortBy}.${filters.sortOrder || 'desc'}` : 'popularity.desc',
+        sort_by: getSortBy(filters.sortBy, filters.sortOrder),
         include_video: false,
       };
 
@@ -137,29 +154,37 @@ class TMDbService {
         
         switch (filters.sortBy) {
           case 'rating':
-            aValue = a.vote_average;
-            bValue = b.vote_average;
+            aValue = a.vote_average || 0;
+            bValue = b.vote_average || 0;
             break;
           case 'release_date':
             aValue = new Date(a.release_date || '1900-01-01').getTime();
             bValue = new Date(b.release_date || '1900-01-01').getTime();
             break;
           case 'title':
-            aValue = a.title.toLowerCase();
-            bValue = b.title.toLowerCase();
+            aValue = a.title?.toLowerCase() || '';
+            bValue = b.title?.toLowerCase() || '';
             break;
           case 'vote_count':
-            aValue = a.vote_count;
-            bValue = b.vote_count;
+            aValue = a.vote_count || 0;
+            bValue = b.vote_count || 0;
             break;
           case 'popularity':
           default:
-            aValue = a.vote_average * Math.log(a.vote_count + 1);
-            bValue = b.vote_average * Math.log(b.vote_count + 1);
+            // Use popularity score based on vote average and count
+            aValue = (a.vote_average || 0) * Math.log((a.vote_count || 0) + 1);
+            bValue = (b.vote_average || 0) * Math.log((b.vote_count || 0) + 1);
             break;
         }
         
         const order = filters.sortOrder === 'asc' ? 1 : -1;
+        
+        // Handle string comparisons properly
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return aValue.localeCompare(bValue) * order;
+        }
+        
+        // Handle numeric comparisons
         if (aValue < bValue) return -1 * order;
         if (aValue > bValue) return 1 * order;
         return 0;
@@ -176,6 +201,10 @@ class TMDbService {
 
   async getMovieDetails(movieId: number): Promise<Movie> {
     return this.fetchFromTMDb<Movie>(`/movie/${movieId}`);
+  }
+
+  async getMovieVideos(movieId: number): Promise<{ results: Array<{ id: string; key: string; name: string; type: string; site: string }> }> {
+    return this.fetchFromTMDb(`/movie/${movieId}/videos`);
   }
 
   async getPopularMovies(page: number = 1): Promise<ApiResponse<Movie>> {

@@ -45,34 +45,16 @@ export function Header() {
                 Home
               </Link>
               <Link 
-                href="/tv" 
-                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
-              >
-                TV Shows
-              </Link>
-              <Link 
                 href="/search" 
                 className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
               >
-                Movies
-              </Link>
-              <Link 
-                href="/new" 
-                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
-              >
-                New & Popular
+                Search
               </Link>
               <Link 
                 href="/watchlist" 
                 className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
               >
                 My List
-              </Link>
-              <Link 
-                href="/languages" 
-                className="text-white hover:text-gray-300 transition-colors duration-200 text-sm font-medium"
-              >
-                Browse by Languages
               </Link>
             </nav>
           </div>
@@ -183,13 +165,6 @@ export function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 My List
-              </Link>
-              <Link 
-                href="/discover" 
-                className="text-white/90 hover:text-white transition-colors duration-200 font-medium py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Discover
               </Link>
             </nav>
           </div>
