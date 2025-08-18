@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
+import { useAppSelector, useAppDispatch } from '@/lib/hooks';
+import { addToWatchlist, removeFromWatchlist, addToWatchlistDB } from '@/lib/slices/watchlistSlice';
 
 interface MovieRowProps {
   title: string;
@@ -10,6 +12,10 @@ interface MovieRowProps {
 }
 
 function MovieRow({ title, movies }: MovieRowProps) {
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
+  const { items: watchlistItems } = useAppSelector(state => state.watchlist);
+
   const scrollLeft = () => {
     const container = document.getElementById(`row-${title.replace(/\s+/g, '-')}`);
     if (container) {
@@ -24,9 +30,33 @@ function MovieRow({ title, movies }: MovieRowProps) {
     }
   };
 
+  const isInWatchlist = (movieId: number) => {
+    return watchlistItems.some(item => item.movieId === movieId);
+  };
+
+  const handleWatchlistToggle = async (movie: Movie) => {
+    if (!isAuthenticated || !currentUser) return;
+
+    if (isInWatchlist(movie.id)) {
+      dispatch(removeFromWatchlist(movie.id));
+    } else {
+      dispatch(addToWatchlist({ movie, status: 'want_to_watch' }));
+      // Also sync with database if user is authenticated
+      try {
+        await dispatch(addToWatchlistDB({ 
+          userId: currentUser.id, 
+          movie, 
+          status: 'want_to_watch' 
+        })).unwrap();
+      } catch (error) {
+        console.error('Failed to sync with database:', error);
+      }
+    }
+  };
+
   return (
-    <div className="mb-8">
-      <h2 className="text-2xl font-bold text-white mb-4 px-4 md:px-12">{title}</h2>
+    <div className="mb-12">
+      <h2 className="text-2xl font-bold text-white mb-6 px-4 md:px-12">{title}</h2>
       <div className="relative group">
         <button 
           onClick={scrollLeft}
@@ -39,18 +69,47 @@ function MovieRow({ title, movies }: MovieRowProps) {
         
         <div 
           id={`row-${title.replace(/\s+/g, '-')}`}
-          className="flex overflow-x-scroll scrollbar-hide space-x-4 px-4 md:px-12"
+          className="flex overflow-x-scroll scrollbar-hide space-x-6 px-4 md:px-12"
         >
           {movies.map((movie) => (
             <div 
               key={movie.id} 
-              className="flex-none w-48 hover:scale-105 transition-transform duration-300 cursor-pointer"
+              className="flex-none w-48 hover:scale-105 transition-transform duration-300 cursor-pointer group"
             >
-              <img
-                src={tmdbService.getImageUrl(movie.poster_path, 'w342')}
-                alt={movie.title}
-                className="w-full h-72 object-cover rounded-lg shadow-lg"
-              />
+              <div className="relative">
+                <img
+                  src={tmdbService.getImageUrl(movie.poster_path, 'w342')}
+                  alt={movie.title}
+                  className="w-full h-72 object-cover rounded-lg shadow-lg"
+                />
+                <div className="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-1 flex items-center space-x-1">
+                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  <span className="text-white text-xs font-medium">{movie.vote_average.toFixed(1)}</span>
+                </div>
+                
+                {/* Watchlist button overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {isAuthenticated ? (
+                  <div className="absolute top-1/2 left-2 right-2 transform -translate-y-1/2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWatchlistToggle(movie);
+                      }}
+                      className={`w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        isInWatchlist(movie.id)
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-netflix-red hover:bg-red-700 text-white'
+                      }`}
+                    >
+                      {isInWatchlist(movie.id) ? '✓ In List' : '+ Add to List'}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <h3 className="text-white text-sm mt-2 truncate">{movie.title}</h3>
             </div>
           ))}
@@ -71,6 +130,7 @@ function MovieRow({ title, movies }: MovieRowProps) {
 
 export default function Home() {
   const [featuredMovie, setFeaturedMovie] = useState<Movie | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [movieCategories, setMovieCategories] = useState({
     trending: [] as Movie[],
     topRated: [] as Movie[],
@@ -85,6 +145,8 @@ export default function Home() {
   useEffect(() => {
     const loadMovies = async () => {
       try {
+        setIsLoading(true);
+        
         // Load featured movie (random from popular)
         const popularResponse = await tmdbService.getPopularMovies();
         const randomMovie = popularResponse.results[Math.floor(Math.random() * popularResponse.results.length)];
@@ -123,11 +185,25 @@ export default function Home() {
         });
       } catch (error) {
         console.error('Error loading movies:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadMovies();
   }, []);
+
+  // Show loading screen until all data is loaded
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-netflix-red mx-auto mb-4"></div>
+          <div className="text-xl font-medium">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -183,7 +259,7 @@ export default function Home() {
       )}
 
       {/* Movie Rows */}
-      <div className="relative z-10 -mt-32 pb-20">
+      <div className="relative z-10 -mt-16 pb-20">
         <MovieRow title="Trending Now" movies={movieCategories.trending} />
         <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} />
         <MovieRow title="Action & Adventure" movies={movieCategories.action} />
