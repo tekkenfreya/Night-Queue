@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
@@ -10,13 +10,21 @@ import { MovieModal } from '@/components/movies/MovieModal';
 interface MovieRowProps {
   title: string;
   movies: Movie[];
+  onModalStateChange?: (rowTitle: string, isOpen: boolean) => void;
 }
 
-function MovieRow({ title, movies }: MovieRowProps) {
+function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
   const dispatch = useAppDispatch();
   const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
   const { items: watchlistItems } = useAppSelector(state => state.watchlist);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+
+  // Notify parent when modal state changes
+  useEffect(() => {
+    if (onModalStateChange) {
+      onModalStateChange(title, !!selectedMovie);
+    }
+  }, [selectedMovie]); // Remove onModalStateChange and title from deps
 
   const scrollLeft = () => {
     const container = document.getElementById(`row-${title.replace(/\s+/g, '-')}`);
@@ -161,6 +169,8 @@ export default function Home() {
   const [isMuted, setIsMuted] = useState(false); // Start unmuted
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [isVideoVisible, setIsVideoVisible] = useState(true);
+  const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
+  const [modalStates, setModalStates] = useState<{[key: string]: boolean}>({});
   const [movieCategories, setMovieCategories] = useState({
     trending: [] as Movie[],
     topRated: [] as Movie[],
@@ -220,6 +230,8 @@ export default function Home() {
               // Create iframe with improved autoplay for slow connections
               const iframe = document.createElement('iframe');
               iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&start=0&preload=auto`;
+              iframe.setAttribute('allow', 'autoplay; encrypted-media');
+              iframe.setAttribute('allowfullscreen', 'true');
               iframe.style.position = 'absolute';
               iframe.style.left = '0';
               iframe.style.top = '0';
@@ -336,6 +348,81 @@ export default function Home() {
     }
   }, [trailerReady]);
 
+  // Pause hero video when any modal opens, resume when closed
+  useEffect(() => {
+    if (iframeRef) {
+      if (isAnyModalOpen) {
+        // Pause video using YouTube API when modal opens
+        console.log('Pausing hero video - modal opened');
+        try {
+          const iframe = iframeRef as any;
+          if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+            iframe.contentWindow.postMessage(
+              '{"event":"command","func":"pauseVideo","args":""}',
+              'https://www.youtube.com'
+            );
+          }
+        } catch (error) {
+          console.log('YouTube API pause failed, using mute fallback');
+          // Fallback: mute instead of changing src
+          try {
+            const iframe = iframeRef as any;
+            if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+              iframe.contentWindow.postMessage(
+                '{"event":"command","func":"mute","args":""}',
+                'https://www.youtube.com'
+              );
+            }
+          } catch (muteError) {
+            console.log('Mute fallback also failed');
+          }
+        }
+      } else {
+        // Resume video using YouTube API when modal closes
+        console.log('Resuming hero video - modal closed');
+        try {
+          const iframe = iframeRef as any;
+          if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+            iframe.contentWindow.postMessage(
+              '{"event":"command","func":"playVideo","args":""}',
+              'https://www.youtube.com'
+            );
+          }
+        } catch (error) {
+          console.log('YouTube API play failed, using unmute fallback');
+          // Fallback: unmute if we were using mute fallback
+          try {
+            const iframe = iframeRef as any;
+            if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+              iframe.contentWindow.postMessage(
+                '{"event":"command","func":"unMute","args":""}',
+                'https://www.youtube.com'
+              );
+            }
+          } catch (unmuteError) {
+            console.log('Unmute fallback also failed');
+          }
+        }
+      }
+    }
+  }, [isAnyModalOpen, iframeRef]);
+
+  // Track hero modal state
+  useEffect(() => {
+    setModalStates(prev => ({ ...prev, hero: heroModalOpen }));
+  }, [heroModalOpen]);
+
+  // Update isAnyModalOpen when any modal state changes
+  useEffect(() => {
+    const anyModalOpen = Object.values(modalStates).some(isOpen => isOpen);
+    setIsAnyModalOpen(anyModalOpen);
+  }, [modalStates]);
+
+  // Function to handle modal state changes from MovieRow components
+  const handleModalStateChange = useCallback((rowTitle: string, isOpen: boolean) => {
+    setModalStates(prev => ({ ...prev, [rowTitle]: isOpen }));
+  }, []);
+
   // Scroll detection to pause video when out of view
   useEffect(() => {
     const handleScroll = () => {
@@ -347,21 +434,35 @@ export default function Home() {
         if (isVisible !== isVideoVisible) {
           setIsVideoVisible(isVisible);
           
-          // Pause/resume video based on visibility
-          if (iframeRef) {
+          // Pause/resume video based on visibility using YouTube API
+          if (iframeRef && !isAnyModalOpen) { // Only control if no modals are open
             if (isVisible) {
-              // Resume video by reloading with autoplay
-              const currentSrc = iframeRef.src;
-              if (currentSrc && !currentSrc.includes('autoplay=1')) {
-                const newSrc = currentSrc.replace('autoplay=0', 'autoplay=1');
-                iframeRef.src = newSrc;
+              // Resume video when scrolling back into view
+              console.log('Hero section visible - resuming video');
+              try {
+                const iframe = iframeRef as any;
+                if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+                  iframe.contentWindow.postMessage(
+                    '{"event":"command","func":"playVideo","args":""}',
+                    'https://www.youtube.com'
+                  );
+                }
+              } catch (error) {
+                console.log('YouTube API play failed on scroll');
               }
             } else {
-              // Pause video by removing autoplay
-              const currentSrc = iframeRef.src;
-              if (currentSrc && currentSrc.includes('autoplay=1')) {
-                const newSrc = currentSrc.replace('autoplay=1', 'autoplay=0');
-                iframeRef.src = newSrc;
+              // Pause video when scrolling out of view
+              console.log('Hero section hidden - pausing video');
+              try {
+                const iframe = iframeRef as any;
+                if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+                  iframe.contentWindow.postMessage(
+                    '{"event":"command","func":"pauseVideo","args":""}',
+                    'https://www.youtube.com'
+                  );
+                }
+              } catch (error) {
+                console.log('YouTube API pause failed on scroll');
               }
             }
           }
@@ -412,7 +513,23 @@ export default function Home() {
       const newMutedState = !isMuted;
       setIsMuted(newMutedState);
       
-      // Update iframe src with new mute parameter
+      // Try using YouTube IFrame API first (smoother)
+      try {
+        const iframe = iframeRef as any;
+        if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+          const command = newMutedState ? 'mute' : 'unMute';
+          iframe.contentWindow.postMessage(
+            `{"event":"command","func":"${command}","args":""}`,
+            'https://www.youtube.com'
+          );
+          console.log(`Sent YouTube API command: ${command}`);
+          return; // Exit early if API call succeeds
+        }
+      } catch (error) {
+        console.log('YouTube API not available, falling back to src change');
+      }
+      
+      // Fallback: Update iframe src (causes refresh but more reliable)
       const currentSrc = iframeRef.src;
       const newSrc = currentSrc.replace(
         newMutedState ? /mute=0/ : /mute=1/, 
@@ -501,17 +618,17 @@ export default function Home() {
           {heroTrailerKey ? (
             <button 
               onClick={toggleMute}
-              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors cursor-pointer"
+              className="absolute top-1/2 right-4 transform -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white p-4 rounded-full transition-colors cursor-pointer"
               title={isMuted ? "Unmute" : "Mute"}
               style={{ pointerEvents: 'auto' }}
             >
               {isMuted ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 </svg>
               )}
@@ -585,14 +702,14 @@ export default function Home() {
         </div>
         
         <div className="relative z-10 -mt-16 pb-20">
-          <MovieRow title="Trending Now" movies={movieCategories.trending} />
-          <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} />
-          <MovieRow title="Action & Adventure" movies={movieCategories.action} />
-          <MovieRow title="Horror Movies" movies={movieCategories.horror} />
-          <MovieRow title="Comedy Movies" movies={movieCategories.comedy} />
-          <MovieRow title="Drama Movies" movies={movieCategories.drama} />
-          <MovieRow title="Sci-Fi Movies" movies={movieCategories.sciFi} />
-          <MovieRow title="Thriller Movies" movies={movieCategories.thriller} />
+          <MovieRow title="Trending Now" movies={movieCategories.trending} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Action & Adventure" movies={movieCategories.action} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Horror Movies" movies={movieCategories.horror} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Comedy Movies" movies={movieCategories.comedy} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Drama Movies" movies={movieCategories.drama} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Sci-Fi Movies" movies={movieCategories.sciFi} onModalStateChange={handleModalStateChange} />
+          <MovieRow title="Thriller Movies" movies={movieCategories.thriller} onModalStateChange={handleModalStateChange} />
         </div>
       </div>
 
