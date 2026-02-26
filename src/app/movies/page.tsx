@@ -141,8 +141,6 @@ export default function Home() {
               site: string;
               type: string;
               name: string;
-              official: boolean;
-              published_at: string;
             }
 
             const videosResponse = await tmdbService.getMovieVideos(randomMovie.id);
