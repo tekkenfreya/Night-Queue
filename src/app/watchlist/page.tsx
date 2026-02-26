@@ -35,12 +35,6 @@ function MovieRow({ title, movies }: MovieRowProps) {
   const handleMarkAsWatched = async (item: WatchlistItem) => {
     if (!currentUser || item.status === 'watched') return;
     
-    console.log('Marking as watched:', { 
-      userId: currentUser.id, 
-      itemId: item.id, 
-      currentStatus: item.status 
-    });
-    
     try {
       await dispatch(updateWatchlistItemDB({
         userId: currentUser.id,
@@ -50,8 +44,6 @@ function MovieRow({ title, movies }: MovieRowProps) {
           dateWatched: new Date().toISOString()
         }
       })).unwrap();
-      
-      console.log('Successfully marked as watched');
     } catch (error) {
       console.error('Failed to mark as watched:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));

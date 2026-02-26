@@ -30,7 +30,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
     { code: 'RU', name: 'Russia' },
   ];
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
+  const handleFilterChange = (key: keyof SearchFilters, value: SearchFilters[keyof SearchFilters]) => {
     const newFilters = { ...filters, [key]: value || undefined };
     onFilterChange(newFilters);
   };

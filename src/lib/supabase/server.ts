@@ -7,7 +7,7 @@ export async function createClient() {
   
   // During build time, return a mock client
   if (!url || url.includes('placeholder') || !key || key.includes('placeholder')) {
-    return null as any;
+    return null as unknown as ReturnType<typeof createServerClient>;
   }
   
   const cookieStore = await cookies();
@@ -20,9 +20,9 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: any[]) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }: any) =>
+            cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) =>
               cookieStore.set(name, value, options)
             );
           } catch {

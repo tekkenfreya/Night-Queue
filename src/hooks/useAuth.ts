@@ -44,7 +44,6 @@ export function useAuth() {
         };
         dispatch(setUser(reduxUser));
         // Load user's watchlist from database
-        console.log('Auth: Loading watchlist for user:', session.user.id);
         dispatch(fetchWatchlist(session.user.id));
       } else {
         // Ensure Redux state is cleared if no session
@@ -76,13 +75,12 @@ export function useAuth() {
           };
           dispatch(setUser(reduxUser));
           // Load user's watchlist from database
-          console.log('Auth: Loading watchlist for user:', session.user.id);
           dispatch(fetchWatchlist(session.user.id));
         } else {
           dispatch(logout());
           dispatch(clearWatchlist());
         }
-        
+
         setLoading(false);
       }
     );
@@ -127,7 +125,6 @@ export function useAuth() {
       };
       dispatch(setUser(reduxUser));
       // Load user's watchlist from database
-      console.log('Auth: Loading watchlist for user:', session.user.id);
       dispatch(fetchWatchlist(session.user.id));
     }
   };

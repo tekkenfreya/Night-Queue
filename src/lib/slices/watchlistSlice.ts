@@ -18,9 +18,7 @@ const initialState: WatchlistState = {
 export const fetchWatchlist = createAsyncThunk(
   'watchlist/fetchWatchlist',
   async (userId: string) => {
-    console.log('Fetching watchlist for user:', userId);
     const result = await databaseService.getWatchlist(userId);
-    console.log('Fetched watchlist:', result);
     return result;
   }
 );

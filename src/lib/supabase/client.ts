@@ -6,7 +6,7 @@ export function createClient() {
   
   // During build time, return a mock client
   if (typeof window === 'undefined' && (!url || url.includes('placeholder'))) {
-    return null as any;
+    return null as unknown as ReturnType<typeof createBrowserClient>;
   }
   
   if (!url || !key) {

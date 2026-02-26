@@ -1,5 +1,41 @@
 import { createClient } from '@/lib/supabase/client';
-import { WatchlistItem, Movie, User, UserPreferences } from '@/types';
+import { WatchlistItem, Movie, User } from '@/types';
+
+interface ProfileDbRow {
+  name?: string;
+  email?: string;
+  avatar?: string;
+  favorite_genres?: number[];
+  theme?: 'dark' | 'light';
+  notifications?: boolean;
+}
+
+interface WatchlistRow {
+  id: string;
+  movie_id: number;
+  movie_title: string;
+  movie_overview: string | null;
+  movie_poster_path: string | null;
+  movie_backdrop_path: string | null;
+  movie_release_date: string | null;
+  movie_vote_average: number | null;
+  movie_vote_count: number | null;
+  movie_genre_ids: number[] | null;
+  status: 'want_to_watch' | 'watched' | 'watch_later';
+  personal_rating: number | null;
+  notes: string | null;
+  date_added: string;
+  date_watched: string | null;
+  where_watched: string | null;
+}
+
+interface WatchlistDbUpdates {
+  status?: 'want_to_watch' | 'watched' | 'watch_later';
+  personal_rating?: number;
+  notes?: string;
+  date_watched?: string;
+  where_watched?: string;
+}
 
 class DatabaseService {
   private profileExists = new Set<string>(); // Cache profile existence
@@ -20,8 +56,6 @@ class DatabaseService {
         return;
       }
 
-      console.log('Database: Ensuring profile exists for userId:', userId);
-      
       // Check if profile already exists
       const { data: existingProfile, error: selectError } = await this.getSupabase()
         .from('profiles')
@@ -35,12 +69,9 @@ class DatabaseService {
       }
 
       if (existingProfile) {
-        console.log('Profile already exists');
         this.profileExists.add(userId); // Cache the result
         return;
       }
-
-      console.log('Profile does not exist, creating new profile...');
 
       // Get user info from auth to create profile
       const { data: { user }, error: authError } = await this.getSupabase().auth.getUser();
@@ -68,8 +99,6 @@ class DatabaseService {
         notifications: true,
       };
 
-      console.log('Creating profile with data:', profileData);
-
       const { data: insertData, error: insertError } = await this.getSupabase()
         .from('profiles')
         .insert(profileData)
@@ -84,7 +113,6 @@ class DatabaseService {
         throw insertError;
       }
 
-      console.log('Profile created successfully:', insertData);
       this.profileExists.add(userId); // Cache the newly created profile
     } catch (error) {
       console.error('Error ensuring profile exists:', error);
@@ -122,12 +150,12 @@ class DatabaseService {
 
   async updateProfile(userId: string, updates: Partial<User>): Promise<boolean> {
     try {
-      const dbUpdates: any = {};
-      
+      const dbUpdates: ProfileDbRow = {};
+
       if (updates.name) dbUpdates.name = updates.name;
       if (updates.email) dbUpdates.email = updates.email;
       if (updates.avatar) dbUpdates.avatar = updates.avatar;
-      
+
       if (updates.preferences) {
         if (updates.preferences.favoriteGenres) {
           dbUpdates.favorite_genres = updates.preferences.favoriteGenres;
@@ -156,25 +184,16 @@ class DatabaseService {
   // Watchlist operations
   async getWatchlist(userId: string): Promise<WatchlistItem[]> {
     try {
-      console.log('Database: Getting watchlist for userId:', userId);
-      
       const { data, error } = await this.getSupabase()
         .from('watchlist')
         .select('*')
         .eq('user_id', userId)
         .order('date_added', { ascending: false });
 
-      console.log('Database response:', { data, error });
-
       if (error) throw error;
-      if (!data) {
-        console.log('No data returned from database');
-        return [];
-      }
+      if (!data) return [];
 
-      console.log('Raw database data:', data);
-
-      const mappedData = data.map((item: any) => ({
+      const mappedData = data.map((item: WatchlistRow) => ({
         id: item.id,
         movieId: item.movie_id,
         movie: {
@@ -196,7 +215,6 @@ class DatabaseService {
         whereWatched: item.where_watched,
       }));
 
-      console.log('Mapped watchlist data:', mappedData);
       return mappedData;
     } catch (error) {
       console.error('Error fetching watchlist:', error);
@@ -207,8 +225,6 @@ class DatabaseService {
 
   async addToWatchlist(userId: string, movie: Movie, status: 'want_to_watch' | 'watched' | 'watch_later' = 'want_to_watch'): Promise<boolean> {
     try {
-      console.log('Database: Adding to watchlist:', { userId, movieId: movie.id, title: movie.title, status });
-      
       // Ensure user profile exists before adding to watchlist
       await this.ensureProfileExists(userId);
       
@@ -227,7 +243,6 @@ class DatabaseService {
 
       // If movie already exists, update it instead of inserting
       if (existingItem) {
-        console.log('Movie already in watchlist, updating status:', { existingStatus: existingItem.status, newStatus: status });
         return await this.updateWatchlistItem(userId, existingItem.id, { status });
       }
 
@@ -246,8 +261,6 @@ class DatabaseService {
         movie_genre_ids: movie.genre_ids,
       };
 
-      console.log('Inserting new watchlist item:', insertData);
-
       const { data, error } = await this.getSupabase()
         .from('watchlist')
         .insert(insertData)
@@ -258,7 +271,6 @@ class DatabaseService {
         throw error;
       }
 
-      console.log('Successfully added to database:', data);
       return true;
     } catch (error) {
       console.error('Error adding to watchlist:', error);
@@ -268,15 +280,13 @@ class DatabaseService {
 
   async updateWatchlistItem(userId: string, itemId: string, updates: Partial<WatchlistItem>): Promise<boolean> {
     try {
-      const dbUpdates: any = {};
-      
+      const dbUpdates: WatchlistDbUpdates = {};
+
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.personalRating !== undefined) dbUpdates.personal_rating = updates.personalRating;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.dateWatched) dbUpdates.date_watched = updates.dateWatched;
       if (updates.whereWatched !== undefined) dbUpdates.where_watched = updates.whereWatched;
-
-      console.log('Updating watchlist item:', { userId, itemId, dbUpdates });
 
       const { data, error } = await this.getSupabase()
         .from('watchlist')
@@ -290,7 +300,6 @@ class DatabaseService {
         throw error;
       }
 
-      console.log('Update successful:', data);
       return true;
     } catch (error) {
       console.error('Error updating watchlist item:', error);

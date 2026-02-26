@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { SearchFilters } from '@/types';
 import { searchMovies, discoverMovies, fetchGenres, setSearchQuery, setFilters } from '@/lib/slices/moviesSlice';
 import { SearchBar } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
@@ -34,7 +35,7 @@ export default function SearchPage() {
     }
   };
 
-  const handleFilterChange = (newFilters: any) => {
+  const handleFilterChange = (newFilters: SearchFilters) => {
     dispatch(setFilters(newFilters));
     if (searchQuery.trim()) {
       dispatch(searchMovies({ query: searchQuery, filters: newFilters }));
