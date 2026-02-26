@@ -44,7 +44,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <label className="block text-sm font-medium mb-2">Genre</label>
           <select
             value={filters.genre || ''}
-            onChange={(e) => handleFilterChange('genre', e.target.value ? parseInt(e.target.value) : null)}
+            onChange={(e) => handleFilterChange('genre', e.target.value ? parseInt(e.target.value) : undefined)}
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">All Genres</option>
@@ -60,7 +60,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <label className="block text-sm font-medium mb-2">Year</label>
           <select
             value={filters.year || ''}
-            onChange={(e) => handleFilterChange('year', e.target.value ? parseInt(e.target.value) : null)}
+            onChange={(e) => handleFilterChange('year', e.target.value ? parseInt(e.target.value) : undefined)}
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">Any Year</option>
@@ -76,7 +76,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <label className="block text-sm font-medium mb-2">Minimum Rating</label>
           <select
             value={filters.rating || ''}
-            onChange={(e) => handleFilterChange('rating', e.target.value ? parseFloat(e.target.value) : null)}
+            onChange={(e) => handleFilterChange('rating', e.target.value ? parseFloat(e.target.value) : undefined)}
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">Any Rating</option>
@@ -92,7 +92,7 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
           <label className="block text-sm font-medium mb-2">Country</label>
           <select
             value={filters.country || ''}
-            onChange={(e) => handleFilterChange('country', e.target.value || null)}
+            onChange={(e) => handleFilterChange('country', e.target.value || undefined)}
             className="w-full px-3 py-2 bg-netflix-dark border border-gray-600 rounded text-white [&>option]:bg-netflix-dark [&>option]:text-white"
           >
             <option value="">All Countries</option>
