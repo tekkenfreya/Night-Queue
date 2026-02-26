@@ -15,8 +15,6 @@
   "description": "",
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.55.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.10",

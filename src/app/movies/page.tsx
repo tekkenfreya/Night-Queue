@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
-import { useAppSelector, useAppDispatch } from '@/lib/hooks';
-import { addToWatchlistDB, removeFromWatchlistDB } from '@/lib/slices/watchlistSlice';
 import { MovieModal } from '@/components/movies/MovieModal';
 
 interface MovieRowProps {
@@ -14,9 +13,6 @@ interface MovieRowProps {
 }
 
 function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
-  const { items: watchlistItems } = useAppSelector(state => state.watchlist);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   // Notify parent when modal state changes
@@ -40,44 +36,11 @@ function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
     }
   };
 
-  const isInWatchlist = (movieId: number) => {
-    return watchlistItems.some(item => item.movieId === movieId);
-  };
-
-  const handleWatchlistToggle = async (movie: Movie) => {
-    if (!isAuthenticated || !currentUser) return;
-
-    if (isInWatchlist(movie.id)) {
-      const watchlistItem = watchlistItems.find(item => item.movieId === movie.id);
-      if (watchlistItem) {
-        try {
-          await dispatch(removeFromWatchlistDB({ 
-            userId: currentUser.id, 
-            itemId: watchlistItem.id, 
-            movieId: movie.id 
-          })).unwrap();
-        } catch (error) {
-          console.error('Failed to remove from database:', error);
-        }
-      }
-    } else {
-      try {
-        await dispatch(addToWatchlistDB({ 
-          userId: currentUser.id, 
-          movie, 
-          status: 'want_to_watch' 
-        })).unwrap();
-      } catch (error) {
-        console.error('Failed to add to database:', error);
-      }
-    }
-  };
-
   return (
     <div className="mb-12">
       <h2 className="font-heading text-2xl font-black text-white mb-6 px-4 md:px-12 tracking-wide uppercase">{title}</h2>
       <div className="relative group">
-        <button 
+        <button
           onClick={scrollLeft}
           className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         >
@@ -85,22 +48,24 @@ function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        
-        <div 
+
+        <div
           id={`row-${title.replace(/\s+/g, '-')}`}
           className="flex overflow-x-scroll scrollbar-hide space-x-6 px-4 md:px-12"
         >
           {movies.map((movie, index) => (
-            <div 
-              key={`${movie.id}-${index}`} 
+            <div
+              key={`${movie.id}-${index}`}
               className="flex-none w-48 hover:scale-105 transition-transform duration-300 cursor-pointer group"
               onClick={() => setSelectedMovie(movie)}
             >
-              <div className="relative">
-                <img
+              <div className="relative h-72">
+                <Image
                   src={tmdbService.getImageUrl(movie.poster_path, 'w342')}
                   alt={movie.title}
-                  className="w-full h-72 object-cover rounded-lg shadow-lg"
+                  fill
+                  className="object-cover rounded-lg shadow-lg"
+                  sizes="192px"
                 />
                 <div className="absolute top-2 right-2 bg-black/70 rounded-full px-2 py-1 flex items-center space-x-1">
                   <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -108,33 +73,12 @@ function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
                   </svg>
                   <span className="text-white text-xs font-medium">{movie.vote_average.toFixed(1)}</span>
                 </div>
-                
-                {/* Watchlist button overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {isAuthenticated ? (
-                  <div className="absolute top-1/2 left-2 right-2 transform -translate-y-1/2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWatchlistToggle(movie);
-                      }}
-                      className={`w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isInWatchlist(movie.id)
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-netflix-red hover:bg-red-700 text-white'
-                      }`}
-                    >
-                      {isInWatchlist(movie.id) ? '✓ In List' : '+ Add to List'}
-                    </button>
-                  </div>
-                ) : null}
               </div>
             </div>
           ))}
         </div>
-        
-        <button 
+
+        <button
           onClick={scrollRight}
           className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         >
@@ -145,7 +89,7 @@ function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
       </div>
 
       {selectedMovie ? (
-        <MovieModal 
+        <MovieModal
           movie={selectedMovie}
           isOpen={true}
           onClose={() => setSelectedMovie(null)}
@@ -156,9 +100,6 @@ function MovieRow({ title, movies, onModalStateChange }: MovieRowProps) {
 }
 
 export default function Home() {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
-  const { items: watchlistItems } = useAppSelector(state => state.watchlist);
   const [featuredMovie, setFeaturedMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [heroModalOpen, setHeroModalOpen] = useState(false);
@@ -186,7 +127,7 @@ export default function Home() {
     const loadMovies = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load featured movie (random from popular)
         const popularResponse = await tmdbService.getPopularMovies();
         const randomMovie = popularResponse.results[Math.floor(Math.random() * popularResponse.results.length)];
@@ -231,11 +172,11 @@ export default function Home() {
 
               return trailer;
             };
-            
+
             const selectedTrailer = findTrailer();
             if (selectedTrailer?.key) {
               setHeroTrailerKey(selectedTrailer.key);
-              
+
               // Create iframe with improved autoplay for slow connections
               const iframe = document.createElement('iframe');
               iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&start=0&preload=auto`;
@@ -251,20 +192,20 @@ export default function Home() {
               iframe.allow = 'autoplay; encrypted-media';
               iframe.loading = 'eager';
               iframe.title = `${randomMovie.title} Trailer`;
-              
+
               let loadTimeout: NodeJS.Timeout;
               let readyTimeout: NodeJS.Timeout;
               let retryCount = 0;
               const maxRetries = 2;
-              
+
               const handleLoad = () => {
                 clearTimeout(loadTimeout);
                 clearTimeout(readyTimeout);
-                
+
                 setIframeRef(iframe);
                 setIsMuted(true);
                 setAutoplayBlocked(true); // Show mute control
-                
+
                 // Give iframe time to start playing before showing
                 readyTimeout = setTimeout(() => {
                   setTrailerReady(true);
@@ -272,7 +213,7 @@ export default function Home() {
                   iframe.style.opacity = '1';
                 }, 500);
               };
-              
+
               const handleError = () => {
                 if (retryCount < maxRetries) {
                   retryCount++;
@@ -284,23 +225,22 @@ export default function Home() {
                   setTrailerReady(true);
                 }
               };
-              
+
               iframe.onload = handleLoad;
               iframe.onerror = handleError;
-              
+
               // Extended timeout for slow connections
               loadTimeout = setTimeout(() => {
                 if (!trailerReady) {
                   handleLoad();
                 }
               }, 8000); // Increased from 3s to 8s
-              
+
               document.body.appendChild(iframe);
             } else {
               setTrailerReady(true); // No trailer available, proceed anyway
             }
-          } catch (error) {
-            console.error('Error fetching hero trailer:', error);
+          } catch {
             setTrailerReady(true); // Proceed without trailer if error
           }
         } else {
@@ -338,8 +278,7 @@ export default function Home() {
           sciFi: sciFiResponse.results.slice(0, 20),
           thriller: thrillerResponse.results.slice(0, 20)
         });
-      } catch (error) {
-        console.error('Error loading movies:', error);
+      } catch {
         setTrailerReady(true); // Proceed if error
       }
       // Don't set isLoading to false here - wait for trailer ready
@@ -429,10 +368,10 @@ export default function Home() {
       if (heroSection) {
         const rect = heroSection.getBoundingClientRect();
         const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
-        
+
         if (isVisible !== isVideoVisible) {
           setIsVideoVisible(isVisible);
-          
+
           // Pause/resume video based on visibility using YouTube API
           if (iframeRef && !isAnyModalOpen) { // Only control if no modals are open
             if (isVisible) {
@@ -468,39 +407,6 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [iframeRef, isVideoVisible]);
-
-  const isInWatchlist = (movieId: number) => {
-    return watchlistItems.some(item => item.movieId === movieId);
-  };
-
-  const handleHeroWatchlistToggle = async () => {
-    if (!featuredMovie || !isAuthenticated || !currentUser) return;
-
-    if (isInWatchlist(featuredMovie.id)) {
-      const watchlistItem = watchlistItems.find(item => item.movieId === featuredMovie.id);
-      if (watchlistItem) {
-        try {
-          await dispatch(removeFromWatchlistDB({ 
-            userId: currentUser.id, 
-            itemId: watchlistItem.id, 
-            movieId: featuredMovie.id 
-          })).unwrap();
-        } catch (error) {
-          console.error('Failed to remove from database:', error);
-        }
-      }
-    } else {
-      try {
-        await dispatch(addToWatchlistDB({ 
-          userId: currentUser.id, 
-          movie: featuredMovie, 
-          status: 'want_to_watch' 
-        })).unwrap();
-      } catch (error) {
-        console.error('Failed to add to database:', error);
-      }
-    }
-  };
 
   const toggleMute = () => {
     if (iframeRef && heroTrailerKey) {
@@ -551,7 +457,7 @@ export default function Home() {
           {/* Background - Always show trailer if available, fallback to image */}
           {iframeRef && showTrailer ? (
             <div className="absolute inset-0 overflow-hidden">
-              <div 
+              <div
                 ref={(container) => {
                   if (container && iframeRef && !container.contains(iframeRef)) {
                     // Move preloaded iframe to visible container with aggressive scaling
@@ -576,7 +482,7 @@ export default function Home() {
             </div>
           ) : heroTrailerKey && !showTrailer ? (
             // Show loading state while trailer is loading
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
                 backgroundImage: `url(${tmdbService.getImageUrl(featuredMovie.backdrop_path, 'original')})`
@@ -584,7 +490,7 @@ export default function Home() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-              
+
               {/* Trailer loading indicator */}
               <div className="absolute top-4 right-4 z-20 bg-black/50 text-white p-3 rounded-full">
                 <div className="flex items-center space-x-2">
@@ -594,7 +500,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
                 backgroundImage: `url(${tmdbService.getImageUrl(featuredMovie.backdrop_path, 'original')})`
@@ -607,7 +513,7 @@ export default function Home() {
 
           {/* Mute/Unmute button - Show when trailer is available */}
           {heroTrailerKey ? (
-            <button 
+            <button
               onClick={toggleMute}
               className="absolute top-1/2 right-4 transform -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white p-4 rounded-full transition-colors cursor-pointer"
               title={isMuted ? "Unmute" : "Mute"}
@@ -630,7 +536,7 @@ export default function Home() {
           <div className="absolute bottom-40 left-4 md:left-12 z-10 max-w-xl">
             <h1 className="font-heading text-5xl md:text-7xl font-bold mb-4">{featuredMovie.title}</h1>
             <p className="text-lg md:text-xl mb-6 line-clamp-3">{featuredMovie.overview}</p>
-            
+
             <div className="flex items-center space-x-4 mb-6">
               <div className="flex items-center space-x-2">
                 <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -642,7 +548,7 @@ export default function Home() {
             </div>
 
             <div className="flex space-x-4">
-              <button 
+              <button
                 onClick={() => setHeroModalOpen(true)}
                 className="bg-white text-black px-8 py-3 rounded-md font-bold hover:bg-gray-200 transition-colors flex items-center space-x-2"
               >
@@ -651,28 +557,6 @@ export default function Home() {
                 </svg>
                 <span>Play</span>
               </button>
-              {isAuthenticated ? (
-                <button 
-                  onClick={handleHeroWatchlistToggle}
-                  className={`px-8 py-3 rounded-md font-bold transition-colors flex items-center space-x-2 ${
-                    featuredMovie && isInWatchlist(featuredMovie.id)
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-gray-600/80 hover:bg-gray-600 text-white'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>{featuredMovie && isInWatchlist(featuredMovie.id) ? '✓ In List' : 'Add to List'}</span>
-                </button>
-              ) : (
-                <button className="bg-gray-600/80 text-white px-8 py-3 rounded-md font-bold hover:bg-gray-600 transition-colors flex items-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>Sign in to Add</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -691,7 +575,7 @@ export default function Home() {
             backgroundSize: '60px 60px'
           }} />
         </div>
-        
+
         <div className="relative z-10 -mt-16 pb-20">
           <MovieRow title="Trending Now" movies={movieCategories.trending} onModalStateChange={handleModalStateChange} />
           <MovieRow title="Top Rated Movies" movies={movieCategories.topRated} onModalStateChange={handleModalStateChange} />
@@ -706,7 +590,7 @@ export default function Home() {
 
       {/* Hero Movie Modal */}
       {featuredMovie && heroModalOpen ? (
-        <MovieModal 
+        <MovieModal
           movie={featuredMovie}
           isOpen={heroModalOpen}
           onClose={() => setHeroModalOpen(false)}

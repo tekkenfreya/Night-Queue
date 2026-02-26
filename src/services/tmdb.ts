@@ -11,12 +11,12 @@ const isAPIConfigured = () => {
 };
 
 class TMDbService {
-  private async fetchFromTMDb<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+  private async fetchFromTMDb<T>(endpoint: string, params: Record<string, string | number | boolean> = {}): Promise<T> {
     isAPIConfigured(); // Check API configuration at runtime
     const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
     url.searchParams.append('api_key', TMDB_API_KEY);
-    
-    Object.entries(params).forEach(([key, value]: [string, any]) => {
+
+    Object.entries(params).forEach(([key, value]: [string, string | number | boolean]) => {
       if (value !== undefined && value !== null && value !== '') {
         url.searchParams.append(key, value.toString());
       }
@@ -41,7 +41,7 @@ class TMDbService {
       return this.searchWithFilters(query, filters);
     } else {
       // Use simple search API for text-only searches
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean> = {
         query,
         page: 1,
       };
@@ -86,7 +86,7 @@ class TMDbService {
         }
       };
 
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean> = {
         page: currentPage,
         sort_by: getSortBy(filters.sortBy, filters.sortOrder),
         include_video: false,
@@ -133,7 +133,7 @@ class TMDbService {
 
   async searchThenApplyFilters(query: string, filters: SearchFilters): Promise<ApiResponse<Movie>> {
     // Get search results first
-    const searchParams: Record<string, any> = { query, page: 1 };
+    const searchParams: Record<string, string | number | boolean> = { query, page: 1 };
     if (filters.year) searchParams.primary_release_year = filters.year;
     
     const searchResponse = await this.fetchFromTMDb<ApiResponse<Movie>>('/search/movie', searchParams);
@@ -151,7 +151,7 @@ class TMDbService {
     // Apply sorting client-side
     if (filters.sortBy) {
       results.sort((a, b) => {
-        let aValue: any, bValue: any;
+        let aValue: string | number, bValue: string | number;
         
         switch (filters.sortBy) {
           case 'rating':

@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Movie } from '@/types';
 import { tmdbService } from '@/services/tmdb';
-import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { addToWatchlistDB, removeFromWatchlistDB } from '@/lib/slices/watchlistSlice';
 
 interface MovieModalProps {
   movie: Movie;
@@ -22,13 +20,8 @@ interface MovieVideo {
 }
 
 export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, currentUser } = useAppSelector(state => state.user);
-  const watchlistItems = useAppSelector(state => state.watchlist.items);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
-  
-  const isInWatchlist = watchlistItems.some(item => item.movieId === movie.id);
 
   useEffect(() => {
     if (isOpen && movie.id) {
@@ -37,41 +30,40 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
         .then(response => {
           // Filter YouTube videos first
           const youtubeVideos = response.results.filter((video: MovieVideo) => video.site === 'YouTube');
-          
+
           // Priority order for trailer selection
           const findTrailer = () => {
             // 1. Official Trailer (highest priority)
-            let trailer = youtubeVideos.find((video: MovieVideo) => 
-              video.type === 'Trailer' && 
-              (video.name.toLowerCase().includes('official') || 
+            let trailer = youtubeVideos.find((video: MovieVideo) =>
+              video.type === 'Trailer' &&
+              (video.name.toLowerCase().includes('official') ||
                video.name.toLowerCase().includes('main'))
             );
-            
+
             // 2. Any Trailer
             if (!trailer) {
               trailer = youtubeVideos.find((video: MovieVideo) => video.type === 'Trailer');
             }
-            
+
             // 3. Teaser as fallback
             if (!trailer) {
               trailer = youtubeVideos.find((video: MovieVideo) => video.type === 'Teaser');
             }
-            
+
             // 4. Any video with "trailer" in the name
             if (!trailer) {
-              trailer = youtubeVideos.find((video: MovieVideo) => 
+              trailer = youtubeVideos.find((video: MovieVideo) =>
                 video.name.toLowerCase().includes('trailer')
               );
             }
-            
+
             return trailer;
           };
-          
+
           const selectedTrailer = findTrailer();
           setTrailerKey(selectedTrailer?.key || null);
         })
-        .catch(error => {
-          console.error('Error fetching trailer:', error);
+        .catch(() => {
           setTrailerKey(null);
         })
         .finally(() => {
@@ -79,31 +71,6 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
         });
     }
   }, [isOpen, movie.id]);
-
-  const handleWatchlistToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!isAuthenticated || !currentUser) {
-      return; // Do nothing if not authenticated
-    }
-    
-    if (isInWatchlist) {
-      const watchlistItem = watchlistItems.find(item => item.movieId === movie.id);
-      if (watchlistItem) {
-        dispatch(removeFromWatchlistDB({ 
-          userId: currentUser.id, 
-          itemId: watchlistItem.id, 
-          movieId: movie.id 
-        }));
-      }
-    } else {
-      dispatch(addToWatchlistDB({ 
-        userId: currentUser.id, 
-        movie, 
-        status: 'want_to_watch' 
-      }));
-    }
-  };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -122,7 +89,7 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8"
       onClick={handleBackdropClick}
     >
@@ -152,7 +119,7 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
                 allow="autoplay; encrypted-media"
               />
             ) : (
-              <div 
+              <div
                 className="w-full h-full bg-cover bg-center relative"
                 style={{
                   backgroundImage: `url(${tmdbService.getImageUrl(movie.backdrop_path, 'w1280')})`
@@ -189,7 +156,7 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
             {/* Details */}
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white mb-3">{movie.title}</h2>
-              
+
               <div className="flex items-center gap-4 mb-4 text-sm">
                 <span className="bg-yellow-600 px-3 py-1 rounded-full text-white font-medium flex items-center gap-1">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -207,25 +174,6 @@ export function MovieModal({ movie, isOpen, onClose }: MovieModalProps) {
                   {movie.overview || 'No synopsis available for this movie.'}
                 </p>
               </div>
-
-              <button
-                onClick={handleWatchlistToggle}
-                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  !isAuthenticated
-                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                    : isInWatchlist
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-netflix-red hover:bg-red-700 text-white'
-                }`}
-                disabled={!isAuthenticated}
-              >
-                {!isAuthenticated 
-                  ? 'Sign in to Add' 
-                  : isInWatchlist 
-                  ? '✓ In Watchlist' 
-                  : '+ Add to Watchlist'
-                }
-              </button>
             </div>
           </div>
         </div>

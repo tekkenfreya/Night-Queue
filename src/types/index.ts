@@ -19,32 +19,6 @@ export interface Genre {
   name: string;
 }
 
-export interface WatchlistItem {
-  id: string;
-  movieId: number;
-  movie: Movie;
-  status: 'want_to_watch' | 'watched' | 'watch_later';
-  personalRating?: number;
-  notes?: string;
-  dateAdded: string;
-  dateWatched?: string;
-  whereWatched?: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-  preferences: UserPreferences;
-}
-
-export interface UserPreferences {
-  favoriteGenres: number[];
-  theme: 'dark' | 'light';
-  notifications: boolean;
-}
-
 export interface SearchFilters {
   genre?: number;
   year?: number;
