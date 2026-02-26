@@ -179,7 +179,6 @@ export default function Home() {
               const iframe = document.createElement('iframe');
               iframe.src = `https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${selectedTrailer.key}&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&start=0&preload=auto`;
               iframe.setAttribute('allow', 'autoplay; encrypted-media');
-              iframe.setAttribute('allowfullscreen', 'true');
               iframe.style.position = 'absolute';
               iframe.style.left = '0';
               iframe.style.top = '0';
@@ -187,6 +186,7 @@ export default function Home() {
               iframe.style.height = '100%';
               iframe.style.border = 'none';
               iframe.style.opacity = '0';
+              iframe.style.pointerEvents = 'none';
               iframe.allow = 'autoplay; encrypted-media';
               iframe.loading = 'eager';
               iframe.title = `${randomMovie.title} Trailer`;

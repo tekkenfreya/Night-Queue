@@ -43,12 +43,6 @@ export function Header() {
                 Movies
               </Link>
               <Link
-                href="/search"
-                className="text-white hover:text-gray-300 transition-colors duration-200 text-base font-heading font-semibold"
-              >
-                Search
-              </Link>
-              <Link
                 href="/anime"
                 className="text-white hover:text-gray-300 transition-colors duration-200 text-base font-heading font-semibold"
               >
@@ -104,13 +98,6 @@ export function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Movies
-              </Link>
-              <Link
-                href="/search"
-                className="text-white/90 hover:text-white transition-colors duration-200 font-heading font-semibold py-3 text-lg"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Search
               </Link>
               <Link
                 href="/anime"
