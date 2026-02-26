@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { SlidersHorizontal, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { SearchFilters } from '@/types';
 import { searchMovies, discoverMovies, fetchGenres, setSearchQuery, setFilters } from '@/lib/slices/moviesSlice';
@@ -90,17 +91,13 @@ export default function SearchPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className="group flex items-center gap-3 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 px-6 py-3 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
-                <svg className={`w-5 h-5 text-netflix-red transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                </svg>
+                <SlidersHorizontal className={`w-5 h-5 text-netflix-red transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
                 <span className="font-medium">{showFilters ? 'Hide Filters' : 'Advanced Filters'}</span>
               </button>
               
               {searchResults.length > 0 ? (
                 <div className="flex items-center gap-2 bg-gradient-to-r from-green-900/30 to-green-800/30 border border-green-600/50 px-6 py-3 rounded-full backdrop-blur-sm">
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
                   <span className="text-green-300 font-medium">
                     {searchResults.length} movie{searchResults.length !== 1 ? 's' : ''} found
                   </span>
@@ -143,9 +140,7 @@ export default function SearchPage() {
             <div className="bg-gradient-to-r from-red-900/30 to-red-800/30 border border-red-600/50 backdrop-blur-sm text-red-200 px-8 py-6 rounded-2xl shadow-2xl">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-red-600/20 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <AlertCircle className="w-6 h-6 text-red-400" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-lg mb-1">Search Error</h4>

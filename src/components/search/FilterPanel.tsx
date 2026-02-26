@@ -1,5 +1,6 @@
 'use client';
 
+import { Film, Calendar, Star, Globe, ArrowUpDown, SortAsc, X } from 'lucide-react';
 import { Genre, SearchFilters } from '@/types';
 
 interface FilterPanelProps {
@@ -41,7 +42,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Genre</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <Film className="w-4 h-4 text-gray-400" />
+            Genre
+          </label>
           <select
             value={filters.genre || ''}
             onChange={(e) => handleFilterChange('genre', e.target.value ? parseInt(e.target.value) : undefined)}
@@ -57,7 +61,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Year</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            Year
+          </label>
           <select
             value={filters.year || ''}
             onChange={(e) => handleFilterChange('year', e.target.value ? parseInt(e.target.value) : undefined)}
@@ -73,7 +80,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Minimum Rating</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <Star className="w-4 h-4 text-gray-400" />
+            Minimum Rating
+          </label>
           <select
             value={filters.rating || ''}
             onChange={(e) => handleFilterChange('rating', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -89,7 +99,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Country</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <Globe className="w-4 h-4 text-gray-400" />
+            Country
+          </label>
           <select
             value={filters.country || ''}
             onChange={(e) => handleFilterChange('country', e.target.value || undefined)}
@@ -105,7 +118,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Sort By</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-400" />
+            Sort By
+          </label>
           <select
             value={filters.sortBy || 'popularity'}
             onChange={(e) => handleFilterChange('sortBy', e.target.value)}
@@ -120,7 +136,10 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Sort Order</label>
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
+            <SortAsc className="w-4 h-4 text-gray-400" />
+            Sort Order
+          </label>
           <select
             value={filters.sortOrder || 'desc'}
             onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
@@ -135,8 +154,9 @@ export function FilterPanel({ filters, genres, onFilterChange }: FilterPanelProp
       <div className="mt-4 flex justify-end">
         <button
           onClick={() => onFilterChange({})}
-          className="text-netflix-red hover:underline"
+          className="flex items-center gap-1.5 text-netflix-red hover:underline"
         >
+          <X className="w-4 h-4" />
           Clear Filters
         </button>
       </div>
