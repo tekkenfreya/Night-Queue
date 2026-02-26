@@ -292,6 +292,15 @@ export default function Home() {
     }
   }, [trailerReady]);
 
+  // Remove iframe from body on unmount (page navigation)
+  useEffect(() => {
+    return () => {
+      if (iframeRef && iframeRef.parentNode) {
+        iframeRef.parentNode.removeChild(iframeRef);
+      }
+    };
+  }, [iframeRef]);
+
   // Pause hero video when any modal opens, resume when closed
   useEffect(() => {
     if (iframeRef) {
