@@ -38,6 +38,8 @@ NEXT_PUBLIC_OMDB_API_KEY=
 NEXT_PUBLIC_OMDB_BASE_URL=http://www.omdbapi.com
 ```
 
+See `.env.example` for reference.
+
 API keys are free:
 - TMDb: https://www.themoviedb.org/settings/api
 - OMDb: https://www.omdbapi.com/apikey.aspx
