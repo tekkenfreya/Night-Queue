@@ -1,103 +1,210 @@
-# CLAUDE.md
+# NextPick — Development Guidelines
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Purpose:** Standard development rules and best practices
+> **Stack:** Next.js 15, TypeScript strict, Tailwind CSS, Redux Toolkit, Supabase, TMDb API, OMDb API, NextAuth.js
 
-## Project Overview
+---
 
-NextPick - A web application for movie tracking and discovery platform with search, personal watchlist management, and enhanced features.
+## Critical Rules
 
-## Technology Stack
-- **Framework**: Next.js (React with TypeScript)
-- **Language**: TypeScript
-- **State Management**: Redux Toolkit
-- **Styling**: CSS Modules / Tailwind CSS
-- **Database**: PostgreSQL for user data and watchlists
-- **External APIs**: TMDb API for movie data, OMDb API for additional metadata
-- **Theme**: Netflix red (#E50914) and dark (#141414) color scheme
-- **Authentication**: NextAuth.js or simple JWT implementation
-- **Deployment**: Vercel (recommended for Next.js)
+### 1. No AI Attribution — Absolute
+- Never mention AI, Claude, or any AI assistant in commit messages, code comments, or documentation
+- No `Co-Authored-By` lines of any kind in commits
+- Git history must read as human-authored at every line — no exceptions
 
-## Core Features
-1. **Movie Search & Discovery**: Search by title, genre, year, director with filtering and sorting
-2. **Personal Watchlist Management**: 
-   - Add movies to "Want to Watch" list
-   - Mark movies as "Watched" with personal ratings (1-5 stars)
-   - Notes section for personal thoughts and where you watched it
-3. **Enhanced Features**: Random movie picker, streaming availability, recommendations
+### 2. Always Read First
+- Read the relevant file before editing it
+- Check `src/types/index.ts` before defining any new interface
+- Check `src/services/tmdb.ts` and `src/services/omdb.ts` before writing any API call
+- Check `src/lib/database.ts` and the Supabase schema before writing any DB query
 
-## Critical Development Rules
+### 3. Zero Hallucination
+- Never use a component, prop, type, function, or import without confirming it exists in the file
+- Never call a TMDb/OMDb endpoint without verifying the exact path and parameter names
+- Never reference a Supabase table column without confirming its exact name in the schema
+- Never reference a Tailwind class that is not in `globals.css` or the standard Tailwind palette
+- When in doubt: read the file first, then write the code
 
-### Conditional Rendering Rule (MANDATORY)
-**ALWAYS use safe conditional rendering patterns to prevent rendering errors.**
+### 4. Plan Before Executing
+- State the full implementation plan before writing any code or modifying any file
+- Get explicit approval before proceeding
+- If scope changes mid-implementation, stop and re-plan
 
-❌ **WRONG - Can cause unexpected rendering:**
-```jsx
-{movie.rating && movie.rating > 0 && (
-  <div>Rating: {movie.rating}/5</div>
-)}
+### 5. Production-Grade Clean Code
+- No hacks, no shortcuts, no commented-out code, no dead code
+- No bloating — do not add dependencies, abstractions, or utilities unless directly required
+- No over-engineering — solve only what is asked, nothing more
+- No `any` types — use exact interfaces from `src/types/index.ts` or define a precise local one
+- No `console.log` left in production code — only `console.error` in API routes
+- Every function does one thing
+
+### 6. AI Temperature — Precision First
+- **Development approach:** Claude must be precision-first and deterministic — follow existing patterns exactly, no creative liberties, no unsolicited refactoring or improvements beyond what is asked
+- **LLM calls in this codebase:** None currently. If ever added: structured output → `temperature: 0`, creative → `temperature: 0.7` max
+- Never exceed `temperature: 0.7` in any LLM call
+
+---
+
+## Project Structure
+
+```
+nextpick-app/
+├── src/
+│   ├── app/                # Next.js App Router pages
+│   │   ├── movies/         # Movie browsing and detail pages
+│   │   ├── anime/          # Anime section
+│   │   ├── kdrama/         # K-Drama section
+│   │   ├── games/          # Games section
+│   │   ├── search/         # Search page
+│   │   ├── watchlist/      # User watchlist
+│   │   ├── auth/           # Auth pages
+│   │   ├── portal/         # Admin/user portal
+│   │   ├── api/            # API routes
+│   │   ├── layout.tsx      # Root layout
+│   │   └── globals.css     # Tailwind base + CSS variables
+│   ├── components/         # Reusable React components
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/
+│   │   ├── store.ts        # Redux store
+│   │   ├── hooks.ts        # Typed Redux hooks (useAppDispatch, useAppSelector)
+│   │   ├── slices/         # Redux slices (feature state)
+│   │   ├── supabase.ts     # Supabase client
+│   │   └── database.ts     # DB query utilities
+│   ├── services/
+│   │   ├── tmdb.ts         # TMDb API service
+│   │   └── omdb.ts         # OMDb API service
+│   ├── types/
+│   │   └── index.ts        # ALL TypeScript interfaces live here
+│   └── middleware.ts       # Next.js middleware (auth protection)
+└── CLAUDE.md
 ```
 
-✅ **CORRECT - Use ternary operator or null:**
-```jsx
-{movie.rating && movie.rating > 0 ? (
-  <div>Rating: {movie.rating}/5</div>
-) : null}
-```
+---
 
-**Why:** When `rating` is `0`, the logical AND renders `0` as unwanted content.
+## Naming Conventions
 
-**Always use:**
-- Ternary operators: `condition ? <Component /> : null`
-- Explicit null checks: `value != null && <Component />`
-- Boolean conversion for safe checks: `!!value && <Component />`
+| Context | Convention | Example |
+|---------|------------|---------|
+| TypeScript/JS variables | camelCase | `movieId`, `watchlistItem` |
+| React components | PascalCase | `MovieCard`, `WatchlistModal` |
+| CSS classes | Tailwind utilities | `bg-[#141414]`, `text-[#E50914]` |
+| API routes | kebab-case | `/api/watchlist/add-item` |
+| File names (components) | PascalCase | `MovieCard.tsx` |
+| File names (utilities/services) | camelCase | `tmdb.ts`, `database.ts` |
+| Redux slices | camelCase | `watchlistSlice`, `userSlice` |
+| Supabase table columns | snake_case | `user_id`, `created_at`, `movie_id` |
 
-### Property Name Verification Rule (MANDATORY)
-**ALWAYS verify property names match between interfaces when integrating data between different parts of the codebase.**
+---
 
-**Before writing integration code, check:**
-1. **TypeScript interfaces** for expected property names
-2. **API service interfaces** for parameter names  
-3. **Database schema** for actual column names
-4. **Form data structure** for UI form field names
+## Tech Stack
 
-❌ **COMMON MISTAKES:**
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript (strict)
+- **Styling:** Tailwind CSS
+- **State Management:** Redux Toolkit (`src/lib/store.ts`, `src/lib/slices/`)
+- **Database:** Supabase (PostgreSQL)
+- **External APIs:** TMDb (primary), OMDb (metadata fallback)
+- **Authentication:** NextAuth.js
+- **Deployment:** Vercel
+
+---
+
+## Color Palette
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Netflix red | `#E50914` | Primary actions, highlights |
+| Dark background | `#141414` | Main background |
+| Card background | `#1f1f1f` | Cards, modals |
+| Text primary | `#ffffff` | Headlines |
+| Text secondary | `#b3b3b3` | Subtitles, metadata |
+
+Use `bg-[#141414]` etc. via Tailwind arbitrary values — never hardcode inline styles.
+
+---
+
+## Component Patterns
+
+### Server vs Client
+- All components are **Server Components by default**
+- Add `'use client'` only when the component uses `useState`, `useEffect`, Redux hooks, event handlers, or browser APIs
+- Never add `'use client'` to a component that does not need it
+
+### Props
+- Always define a local `interface Props` at the top of the file — never inline, never `any`
+
+### Redux usage
+- Always use typed hooks: `useAppDispatch` and `useAppSelector` from `src/lib/hooks.ts`
+- Never import raw `useDispatch`/`useSelector` from react-redux directly
+
+---
+
+## Project-Specific Rules
+
+### Conditional Rendering — MANDATORY
+Always use safe conditional rendering patterns to prevent `0` being rendered as content.
+
 ```tsx
-// Service expects 'releaseDate', interface expects 'year'
-await service.searchMovies({ releaseDate: 2023 }); // ERROR
+// WRONG — renders "0" when rating is 0
+{movie.rating && movie.rating > 0 && <div>Rating: {movie.rating}/5</div>}
 
-// Form uses string, interface expects number
-rating: "4" // vs rating: 4
+// CORRECT — always use ternary or explicit null
+{movie.rating && movie.rating > 0 ? <div>Rating: {movie.rating}/5</div> : null}
 ```
 
-✅ **CORRECT APPROACH:**
+### Property Name Verification — MANDATORY
+Before writing integration code, always cross-check:
+1. TypeScript interface in `src/types/index.ts`
+2. API service parameter names in `src/services/`
+3. Supabase column names in the actual schema
+4. Form field names in the component
+
 ```tsx
-// 1. Check the Movie interface first
-interface Movie {
-  id: number;
-  title: string;
-  year: number;           // NOT releaseDate
-  rating: number;         // NOT string
-  genres: string[];       // NOT genre (singular)
-}
+// WRONG — service expects 'year', form sends 'releaseDate'
+await tmdbService.search({ releaseDate: formData.year })
 
-// 2. Map form data to match interface
-await service.searchMovies({
-  year: parseInt(formData.year),     // Map correctly
-  rating: parseInt(formData.rating), // Convert to number
-  genres: formData.genres.split(',') // Convert to array
-});
+// CORRECT — read the interface first, then map
+await tmdbService.search({ year: parseInt(formData.year) })
 ```
 
-**Why:** Property name mismatches cause TypeScript errors and runtime failures. Different parts of the codebase (forms, services, interfaces, database) may use different naming conventions.
+---
 
-## Tasks
+## API Routes
 
-1. First think through the problem, read the codebase for relevant files, and write a plan to tasks/todo.md.
-2. The plan should have a list of todo items that you can check off as you complete them
-3. Before you begin working, check in with me and I will verify the plan.
-4. Then, begin working on the todo items, marking them as complete as you go.
-5. Please every step of the way just give me a high level explanation of what changes you made
-6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
-7. When making commit with github, do not ever write generated by claude AI or any AI.
-8. Always use Claude Sonnet 4 as model not GPT.
-9. **ALWAYS check all variable names, imports, and dependencies before adding or modifying code. Verify that all referenced components, functions, and types exist and are properly imported. This prevents build errors and missing dependencies.**
+- Every API route lives at `src/app/api/[route-name]/route.ts`
+- Protect routes via `middleware.ts` — do not duplicate auth checks per route where middleware already covers it
+- Always return typed responses — no untyped `Response.json({})`
+- Use `console.error('[route-name] error:', error)` in catch blocks — never expose raw errors to the client
+
+---
+
+## Database Rules
+
+- All DB queries go through `src/lib/database.ts` or Supabase client from `src/lib/supabase.ts`
+- Never write raw SQL strings unless using Supabase's `.rpc()` for stored procedures
+- Always use column names exactly as defined in the Supabase schema (snake_case)
+- Never expose the Supabase service key to the client — server-side only
+
+---
+
+## Git Workflow
+
+```
+feat(movies): add genre filter to search page
+fix(watchlist): correct rating update on re-watch
+refactor(auth): simplify session handling in middleware
+```
+
+- No mention of AI, Claude, or any AI tool in any commit message
+- No `Co-Authored-By` lines of any kind
+
+---
+
+## Commands
+
+```bash
+npm run dev        # Start dev server
+npm run build      # Production build
+npm run lint       # ESLint check
+npm run type-check # TypeScript check (tsc --noEmit)
+```
