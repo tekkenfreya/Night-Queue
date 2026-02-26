@@ -15,11 +15,11 @@ interface OMDbMovie {
 }
 
 class OMDbService {
-  private async fetchFromOMDb(params: Record<string, any>): Promise<OMDbMovie> {
+  private async fetchFromOMDb(params: Record<string, string | number | undefined>): Promise<OMDbMovie> {
     const url = new URL(OMDB_BASE_URL!);
     url.searchParams.append('apikey', OMDB_API_KEY!);
-    
-    Object.entries(params).forEach(([key, value]: [string, any]) => {
+
+    Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, value.toString());
       }
@@ -35,7 +35,7 @@ class OMDbService {
   }
 
   async getMovieByTitle(title: string, year?: number): Promise<OMDbMovie> {
-    const params: Record<string, any> = { 
+    const params: Record<string, string | number | undefined> = {
       t: title,
       plot: 'full',
     };
